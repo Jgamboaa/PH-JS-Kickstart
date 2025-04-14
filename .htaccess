@@ -1,0 +1,95 @@
+# ======================================================================
+
+# Configuración de seguridad - Cabeceras
+
+# ======================================================================
+
+<IfModule mod_headers.c>
+    # HSTS (forzar HTTPS)
+    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
+    # Prevenir clickjacking
+    Header always set X-Frame-Options "DENY"
+    # Evitar inferencia de MIME types
+    Header always set X-Content-Type-Options "nosniff"
+    # Política de referidores
+    Header always set Referrer-Policy "strict-origin-when-cross-origin"
+    # Política de permisos
+    Header always set Permissions-Policy "geolocation=(self), microphone=()
+    # Protección básica XSS (legacy)
+    Header always set X-XSS-Protection "1; mode=block"
+    
+    # Eliminar cabeceras sensibles
+    Header unset Server
+    Header unset X-Powered-By
+</IfModule>
+
+# ======================================================================
+
+# Content Security Policy (CSP) - ¡Personalizar según necesidades!
+
+# ======================================================================
+
+# <IfModule mod_headers.c>
+
+# Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https:; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self';"
+
+# </IfModule>
+
+# ======================================================================
+
+# Redirección HTTP a HTTPS
+
+# ======================================================================
+
+<IfModule mod_rewrite.c>
+    RewriteEngine On
+    RewriteCond %{HTTPS} !=on
+    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
+</IfModule>
+
+# ======================================================================
+
+# Manejo de errores
+
+# ======================================================================
+
+ErrorDocument 400 /errors/400.php
+ErrorDocument 401 /errors/401.php
+ErrorDocument 403 /errors/403.php
+ErrorDocument 404 /errors/404.php
+ErrorDocument 500 /errors/500.php
+ErrorDocument 503 /errors/503.php
+
+# Bloquear acceso a archivos sensibles
+
+<FilesMatch "(\.(env|log|sqlite|htaccess|env_example|sql)|composer\.(json|lock))$">
+Require all denied
+</FilesMatch>
+
+# Prevenir acceso a directorios
+
+Options All -Indexes
+
+<Files "db_conn.php">
+Require all denied
+</Files>
+
+<Files "api_functions.php">
+Require all denied
+</Files>
+
+<Files "conn.php">
+Require all denied
+</Files>
+
+<Files ~ "\.sql$">
+Order allow,deny
+Deny from all
+</Files>
+
+# Protección adicional para archivos sensibles
+
+<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak|sql)$">
+Order Allow,Deny
+Deny from all
+</FilesMatch>
