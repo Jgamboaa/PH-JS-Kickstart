@@ -1,6 +1,8 @@
 <?php
 require_once __DIR__ . '/env_reader.php';
 
+mysqli_report(MYSQLI_REPORT_ERROR | MYSQLI_REPORT_STRICT);
+
 $config = array(
     'host' => env('DB_HOST'),
     'user' => env('DB_USER'),
@@ -8,18 +10,13 @@ $config = array(
     'db'   => env('DB_NAME')
 );
 
-$conn = null;
 try
 {
     $conn = new mysqli($config['host'], $config['user'], $config['pass'], $config['db']);
-    if ($conn->connect_error)
-    {
-        throw new mysqli_sql_exception($conn->connect_error);
-    }
+    $conn->set_charset('utf8');
 }
 catch (mysqli_sql_exception $e)
 {
-    die("Error de conexión a la base de datos: " . $e->getMessage());
+    error_log("Error de conexión a la base de datos: " . $e->getMessage());
+    die("Error de conexión a la base de datos. Por favor, inténtelo de nuevo más tarde.");
 }
-
-$conn->set_charset('utf8');
