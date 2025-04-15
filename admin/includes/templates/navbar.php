@@ -1,13 +1,7 @@
 <!-- Navbar -->
 <?php
-if ($user['color_mode'] == "dark")
-{
-  echo "<nav class='main-header navbar navbar-expand navbar-dark'>";
-}
-else
-{
-  echo "<nav class='main-header navbar navbar-expand navbar-white navbar-light'>";
-}
+$navbarClass = $user['color_mode'] == "dark" ? "navbar-dark" : "navbar-white navbar-light";
+echo "<nav class='main-header navbar navbar-expand $navbarClass'>";
 ?>
 <!-- Left navbar links -->
 <ul class="navbar-nav">
