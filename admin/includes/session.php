@@ -48,7 +48,7 @@ if (!isset($_SESSION['admin']) || trim($_SESSION['admin']) == '')
 
 $sql = "SELECT * FROM admin WHERE id = '" . $_SESSION['admin'] . "'";
 $query = $conn->query($sql);
-$user = $query->fetch_assoc();
+$user = $query->fetch();
 
 //update last_login time
 $now_login = date('Y-m-d H:i:s');
@@ -57,7 +57,7 @@ $conn->query($sql);
 
 $sql = "SELECT * FROM company_data WHERE id = 1 LIMIT 1";
 $result = $conn->query($sql);
-$data = $result->fetch_assoc();
+$data = $result->fetch();
 
 $rep_name = $data['rep_name'];
 $company_name = $data['company_name'];
