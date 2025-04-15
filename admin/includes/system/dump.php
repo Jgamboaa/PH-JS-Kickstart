@@ -20,10 +20,13 @@ if (isset($_POST['mode']) && $_POST['mode'] == 'email')
 	}
 }
 
-// Obtener configuraciones de la base de datos desde el archivo principal
-require_once __DIR__ . '/../../../config/db_conn.php';
-
-// Reutilizar configuraciones desde db_conn.php en lugar de definirlas nuevamente
+// Crear el array de configuración con las variables de db_conn.php
+$config = [
+	'host' => $host,
+	'user' => $user,
+	'pass' => $pass,
+	'db'   => $db
+];
 
 // Determinar el modo de operación (descargar o email)
 $mode = isset($_POST['mode']) ? $_POST['mode'] : 'download';
@@ -32,55 +35,93 @@ $email = isset($_POST['email']) ? $_POST['email'] : $mail_support; // Usar el co
 // Nombre del archivo temporal para almacenar el respaldo
 $filename = __DIR__ . "/DB_BACKUP_" . date("Y-m-d-H-i-s") . ".sql";
 
-// Función para probar el comando mysqldump y devolver el resultado
-function tryMysqldump($command)
+// Función para respaldar la base de datos usando PDO
+function backupDatabaseWithPDO($conn, $filename)
 {
-	exec($command, $output, $returnCode);
-	return [$output, $returnCode];
-}
-
-// Función para intentar el respaldo con una configuración específica
-function tryBackupWithConfig($config, $filename)
-{
-	$commands = [
-		sprintf(
-			'mysqldump --host=%s --user=%s --password=%s --column-statistics=0 %s > %s 2>&1',
-			escapeshellarg($config['host']),
-			escapeshellarg($config['user']),
-			escapeshellarg($config['pass']),
-			escapeshellarg($config['db']),
-			escapeshellarg($filename)
-		),
-		sprintf(
-			'mysqldump --host=%s --user=%s --password=%s --no-tablespaces %s > %s 2>&1',
-			escapeshellarg($config['host']),
-			escapeshellarg($config['user']),
-			escapeshellarg($config['pass']),
-			escapeshellarg($config['db']),
-			escapeshellarg($filename)
-		)
-	];
-
-	$lastOutput = [];
-	$lastReturnCode = 1;
-
-	foreach ($commands as $command)
+	try
 	{
-		list($output, $returnCode) = tryMysqldump($command);
-		$lastOutput = $output;
-		$lastReturnCode = $returnCode;
-
-		if ($returnCode === 0)
+		$tables = [];
+		$result = $conn->query("SHOW TABLES");
+		while ($row = $result->fetch(PDO::FETCH_NUM))
 		{
-			return [true, null]; // Éxito
+			$tables[] = $row[0];
+		}
+
+		$return = "-- Respaldo de base de datos generado el " . date("Y-m-d H:i:s") . "\n";
+		$return .= "-- Usando PDO\n\n";
+
+		// Obtener y guardar estructura de tablas
+		foreach ($tables as $table)
+		{
+			$result = $conn->query("SHOW CREATE TABLE `$table`");
+			$row = $result->fetch();
+
+			$return .= "\n\n-- Estructura de la tabla `$table`\n\n";
+			$return .= "DROP TABLE IF EXISTS `$table`;\n";
+			$return .= $row['Create Table'] . ";\n\n";
+
+			// Obtener datos
+			$result = $conn->query("SELECT * FROM `$table`");
+			$columnCount = $result->columnCount();
+
+			if ($result->rowCount() > 0)
+			{
+				$return .= "-- Volcado de datos para la tabla `$table`\n";
+
+				while ($row = $result->fetch(PDO::FETCH_NUM))
+				{
+					$return .= "INSERT INTO `$table` VALUES (";
+					for ($j = 0; $j < $columnCount; $j++)
+					{
+						if (isset($row[$j]))
+						{
+							$row[$j] = addslashes($row[$j]);
+							$row[$j] = str_replace("\n", "\\n", $row[$j]);
+							$return .= '"' . $row[$j] . '"';
+						}
+						else
+						{
+							$return .= 'NULL';
+						}
+						if ($j < ($columnCount - 1))
+						{
+							$return .= ',';
+						}
+					}
+					$return .= ");\n";
+				}
+			}
+			$return .= "\n\n";
+		}
+
+		// Guardar archivo
+		if (file_put_contents($filename, $return))
+		{
+			return [true, null];
+		}
+		else
+		{
+			return [false, ["Error al escribir en el archivo de respaldo"]];
 		}
 	}
-
-	return [false, $lastOutput]; // Fallo, devuelve el último mensaje de error
+	catch (Exception $e)
+	{
+		return [false, ["Error en PDO: " . $e->getMessage()]];
+	}
 }
 
-// Intentar realizar el respaldo 
-list($success, $errorOutput) = tryBackupWithConfig($config, $filename);
+// Realizar respaldo usando PDO
+list($success, $pdoError) = backupDatabaseWithPDO($conn, $filename);
+
+// Registrar resultado del respaldo
+if (!$success)
+{
+	error_log("Error al realizar respaldo con PDO: " . print_r($pdoError, true));
+}
+else
+{
+	error_log("Respaldo con PDO completado exitosamente");
+}
 
 // Verificar si el archivo se creó correctamente
 if (file_exists($filename))
