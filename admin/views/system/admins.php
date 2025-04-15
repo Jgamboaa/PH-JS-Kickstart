@@ -115,7 +115,7 @@ else
                                 <?php
                                 $sql = "SELECT * FROM roles";
                                 $query = $conn->query($sql);
-                                while ($rrow = $query->fetch_assoc())
+                                while ($rrow = $query->fetch())
                                 {
                                     echo "<option value='" . $rrow['id'] . "'>" . $rrow['nombre'] . "</option>";
                                 }

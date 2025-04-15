@@ -2,7 +2,6 @@
 include 'includes/session.php';
 include 'includes/templates/header.php';
 echo "<body class='hold-transition " . ($user['color_mode'] == "dark" ? "dark-mode " : "") . "sidebar-mini layout-fixed layout-navbar-fixed layout-footer-fixed'>";
-include 'includes/system/profile_modal.php';
 ?>
 <div class="wrapper">
   <?php
