@@ -1,6 +1,6 @@
 <?php
 require_once 'includes/session_config.php';
-require_once 'includes/conn.php';
+require_once dirname(__DIR__) . '../config/db_conn.php';
 require_once 'includes/security_functions.php';
 
 header('Content-Type: application/json');

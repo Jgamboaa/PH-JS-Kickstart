@@ -7,7 +7,6 @@ if (!file_exists(__DIR__ . '/../.env'))
 }
 
 require_once 'includes/session_config.php';
-require_once 'includes/conn.php';
 require_once 'includes/security_functions.php';
 
 if (isset($_SESSION['admin']))
