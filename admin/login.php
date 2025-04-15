@@ -15,18 +15,16 @@ if (isset($_POST['login']) && isset($_POST['csrf_token']) && $_POST['csrf_token'
 	{
 		$sql = "SELECT * FROM admin WHERE username = ?";
 		$stmt = $conn->prepare($sql);
-		$stmt->bind_param("s", $username);
-		$stmt->execute();
-		$query = $stmt->get_result();
+		$stmt->execute([$username]);
 
-		if ($query->num_rows < 1)
+		if ($stmt->rowCount() < 1)
 		{
 			updateLoginAttempts($username);
 			$response['message'] = 'Usuario no encontrado';
 		}
 		else
 		{
-			$row = $query->fetch_assoc();
+			$row = $stmt->fetch(PDO::FETCH_ASSOC);
 			if (password_verify($password, $row['password']))
 			{
 				if ($row['admin_estado'] == 1)

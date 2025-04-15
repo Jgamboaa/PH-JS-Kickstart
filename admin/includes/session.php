@@ -46,18 +46,21 @@ if (!isset($_SESSION['admin']) || trim($_SESSION['admin']) == '')
 	exit();
 }
 
-$sql = "SELECT * FROM admin WHERE id = '" . $_SESSION['admin'] . "'";
-$query = $conn->query($sql);
-$user = $query->fetch();
+$sql = "SELECT * FROM admin WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->execute([$_SESSION['admin']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 //update last_login time
 $now_login = date('Y-m-d H:i:s');
-$sql = "UPDATE admin SET last_login = '$now_login' WHERE id = '" . $_SESSION['admin'] . "'";
-$conn->query($sql);
+$sql = "UPDATE admin SET last_login = ? WHERE id = ?";
+$stmt = $conn->prepare($sql);
+$stmt->execute([$now_login, $_SESSION['admin']]);
 
 $sql = "SELECT * FROM company_data WHERE id = 1 LIMIT 1";
-$result = $conn->query($sql);
-$data = $result->fetch();
+$stmt = $conn->prepare($sql);
+$stmt->execute();
+$data = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $rep_name = $data['rep_name'];
 $company_name = $data['company_name'];

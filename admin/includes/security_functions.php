@@ -16,13 +16,11 @@ function checkLoginAttempts($username)
     global $conn;
     $sql = "SELECT login_attempts, last_attempt FROM login_attempts WHERE username = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
-    $result = $stmt->get_result();
+    $stmt->execute([$username]);
 
-    if ($result->num_rows > 0)
+    if ($stmt->rowCount() > 0)
     {
-        $row = $result->fetch_assoc();
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $bloqueo = false;
         $tiempoBloqueo = 0;
 
@@ -72,8 +70,7 @@ function updateLoginAttempts($username)
             login_attempts = login_attempts + 1, 
             last_attempt = NOW()";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
+    $stmt->execute([$username]);
 }
 
 function resetLoginAttempts($username)
@@ -81,8 +78,7 @@ function resetLoginAttempts($username)
     global $conn;
     $sql = "DELETE FROM login_attempts WHERE username = ?";
     $stmt = $conn->prepare($sql);
-    $stmt->bind_param("s", $username);
-    $stmt->execute();
+    $stmt->execute([$username]);
 }
 
 function logLoginActivity($username, $success)
@@ -92,6 +88,5 @@ function logLoginActivity($username, $success)
     $stmt = $conn->prepare($sql);
     $status = $success ? 'success' : 'failed';
     $ip = $_SERVER['REMOTE_ADDR'];
-    $stmt->bind_param("sss", $username, $status, $ip);
-    $stmt->execute();
+    $stmt->execute([$username, $status, $ip]);
 }
