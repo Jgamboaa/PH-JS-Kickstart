@@ -118,10 +118,6 @@ if (!$success)
 {
 	error_log("Error al realizar respaldo con PDO: " . print_r($pdoError, true));
 }
-else
-{
-	error_log("Respaldo con PDO completado exitosamente");
-}
 
 // Verificar si el archivo se creó correctamente
 if (file_exists($filename))
