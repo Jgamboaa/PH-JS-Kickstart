@@ -20,7 +20,9 @@ El sistema utiliza varias bibliotecas y dependencias que se instalan automática
 ### Tecnologías utilizadas:
 
 **Frontend:** HTML, CSS, JS (AdminLTE y Bootstrap 4)
+
 **Backend:** PHP Puro
+
 **Base de datos:** Mariadb
 
 ## Instrucciones de instalación
