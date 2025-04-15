@@ -24,11 +24,11 @@
         data-accordion="true">
         <?php
         $roles_ids = explode(',', $user['roles_ids']);
-        include('menubar/home.php');
+        include('../admin/includes/menubar/home.php');
         //panel de administrador
         if (in_array("1", $roles_ids))
         {
-          include('menubar/system.php');
+          include('../admin/includes/menubar/system.php');
         }
         ?>
       </ul>
