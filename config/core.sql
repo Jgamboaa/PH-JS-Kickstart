@@ -47,7 +47,7 @@ CREATE TABLE
     `admin_gender` varchar(30) DEFAULT NULL,
     `admin_estado` int(11) NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`)
-  ) ENGINE = InnoDB AUTO_INCREMENT = 2 DEFAULT CHARSET = latin1 COLLATE = latin1_swedish_ci;
+  ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = latin1 COLLATE = latin1_swedish_ci;
 
 
 # Dump of table cola_correos
