@@ -6,7 +6,7 @@ $userController = new UserController($conn);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
-	$crud = $_POST['crud'];
+	$crud = $_POST['crud'] ?? '';
 
 	switch ($crud)
 	{
@@ -30,8 +30,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			echo json_encode($result);
 			break;
 
+		case 'profile':
+			$result = $userController->updateProfile($_POST, $_FILES, $user);
+			echo json_encode($result);
+			break;
+
 		default:
-			echo json_encode(['status' => false, 'message' => 'Acción no válida']);
+			// Si no se especificó el parámetro crud, intentar procesar como actualización de perfil
+			if (isset($_POST['curr_password']))
+			{
+				$result = $userController->updateProfile($_POST, $_FILES, $user);
+				echo json_encode($result);
+			}
+			else
+			{
+				echo json_encode(['status' => false, 'message' => 'Acción no válida']);
+			}
 			break;
 	}
 }

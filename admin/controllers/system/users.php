@@ -139,6 +139,65 @@ class UserController
         }
     }
 
+    public function updateProfile($data, $files, $current_user)
+    {
+        try
+        {
+            $curr_password = $data['curr_password'];
+            $password = $data['password'];
+            $color_mode = $data['color_mode'];
+            $username = $current_user['username'];
+
+            // Verificar contraseña actual
+            if (!password_verify($curr_password, $current_user['password']))
+            {
+                return ['status' => false, 'message' => 'Contraseña actual incorrecta'];
+            }
+
+            // Manejar subida de foto
+            $filename = $current_user['photo'];
+            if (!empty($files['photo']['name']))
+            {
+                // Eliminar foto anterior si existe
+                if (file_exists('../../../images/admins/' . $current_user['photo']) && !empty($current_user['photo']))
+                {
+                    unlink('../../../images/admins/' . $current_user['photo']);
+                }
+                $ext = pathinfo($files['photo']['name'], PATHINFO_EXTENSION);
+                $filename = 'photo_' . $username . '.' . $ext;
+                move_uploaded_file($files['photo']['tmp_name'], '../../../images/admins/' . $filename);
+            }
+
+            // Verificar si la contraseña ha cambiado
+            if ($password == $current_user['password'])
+            {
+                $password = $current_user['password'];
+            }
+            else
+            {
+                $password = password_hash($password, PASSWORD_DEFAULT);
+            }
+
+            $sql = "UPDATE admin SET password = :password, photo = :filename, color_mode = :color_mode 
+                    WHERE id = :user_id";
+
+            $stmt = $this->conn->prepare($sql);
+            $stmt->bindParam(':password', $password);
+            $stmt->bindParam(':filename', $filename);
+            $stmt->bindParam(':color_mode', $color_mode);
+            $stmt->bindParam(':user_id', $current_user['id']);
+
+            if ($stmt->execute())
+            {
+                return ['status' => true, 'message' => 'Perfil actualizado correctamente'];
+            }
+        }
+        catch (PDOException $e)
+        {
+            return ['status' => false, 'message' => 'Error al actualizar: ' . $e->getMessage()];
+        }
+    }
+
     public function deleteUser($id, $current_user_id)
     {
         try
