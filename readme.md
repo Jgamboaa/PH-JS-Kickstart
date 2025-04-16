@@ -49,10 +49,10 @@ http://tu-servidor/core/
 
 Esta opción es ideal para servidores sin interfaz gráfica o cuando necesites automatizar la instalación.
 
-1. Clonar el repositorio
+1. Clonar el repositorio (renombralo a tu gusto)
 
 ```bash
-git clone https://github.com/Jgamboaa/PH-JS-Kickstart.git
+git clone https://github.com/Jgamboaa/PH-JS-Kickstart.git core
 ```
 
 ```bash
