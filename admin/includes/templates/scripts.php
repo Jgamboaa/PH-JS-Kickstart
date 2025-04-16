@@ -72,7 +72,7 @@
         // Añadir el manejador para el botón de recarga
         $(document).on('click', '.recargar', function(e) {
           e.preventDefault();
-          let route = window.location.hash.slice(1) || 'cotizaciones';
+          let route = window.location.hash.slice(1) || 'home';
           loadContent(route);
         });
 
