@@ -30,7 +30,7 @@ El sistema utiliza varias bibliotecas y dependencias que se instalan automática
 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/Jgamboaa/PH-JS-Kickstart.git
+git clone https://github.com/Jgamboaa/PH-JS-Kickstart.git core
 ```
 
 2. Acceder al sistema a través del navegador
@@ -77,7 +77,7 @@ El instalador creará automáticamente el archivo `.env`, importará la estructu
 1. Clonar el repositorio
 
 ```bash
-git clone https://github.com/Jgamboaa/PH-JS-Kickstart.git
+git clone https://github.com/Jgamboaa/PH-JS-Kickstart.git core
 ```
 
 2. Copiar el archivo de configuración
