@@ -47,7 +47,7 @@ CREATE TABLE
     `admin_gender` varchar(30) DEFAULT NULL,
     `admin_estado` int(11) NOT NULL DEFAULT 0,
     PRIMARY KEY (`id`)
-  ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = latin1 COLLATE = latin1_swedish_ci;
+  ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
 # Dump of table cola_correos
@@ -69,7 +69,7 @@ CREATE TABLE
     `enviado_en` varchar(255) DEFAULT NULL,
     `creador` int(11) NOT NULL,
     PRIMARY KEY (`id_cola`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
 # Dump of table company_data
@@ -98,7 +98,7 @@ CREATE TABLE
     `developer_name` varchar(100) NOT NULL,
     `rep_contract` mediumtext NOT NULL,
     PRIMARY KEY (`id`)
-  ) ENGINE = InnoDB AUTO_INCREMENT = 2 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+  ) ENGINE = InnoDB AUTO_INCREMENT = 2 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
 LOCK TABLES `company_data` WRITE;
@@ -171,7 +171,7 @@ CREATE TABLE
     `last_attempt` datetime DEFAULT NULL,
     PRIMARY KEY (`id`),
     UNIQUE KEY `unique_username` (`username`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
 # Dump of table login_logs
@@ -188,7 +188,7 @@ CREATE TABLE
     `ip_address` varchar(45) DEFAULT NULL,
     `created_at` timestamp NULL DEFAULT current_timestamp(),
     PRIMARY KEY (`id`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_unicode_ci;
+  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
 # Dump of table roles
@@ -202,7 +202,7 @@ CREATE TABLE
     `id` int(11) NOT NULL AUTO_INCREMENT,
     `nombre` varchar(50) NOT NULL,
     PRIMARY KEY (`id`)
-  ) ENGINE = InnoDB AUTO_INCREMENT = 3 DEFAULT CHARSET = latin1 COLLATE = latin1_swedish_ci;
+  ) ENGINE = InnoDB AUTO_INCREMENT = 3 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
 LOCK TABLES `roles` WRITE;
