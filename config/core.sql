@@ -50,28 +50,6 @@ CREATE TABLE
   ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
 
-# Dump of table cola_correos
-# ------------------------------------------------------------
-DROP TABLE
-  IF EXISTS `cola_correos`;
-
-
-CREATE TABLE
-  `cola_correos` (
-    `id_cola` int(11) NOT NULL AUTO_INCREMENT,
-    `destinatarios` varchar(255) NOT NULL,
-    `asunto` varchar(255) NOT NULL,
-    `contenido` mediumtext NOT NULL,
-    `archivos` mediumtext DEFAULT NULL,
-    `error` mediumtext DEFAULT NULL,
-    `estado` int(11) NOT NULL DEFAULT 0,
-    `creado_en` varchar(255) NOT NULL,
-    `enviado_en` varchar(255) DEFAULT NULL,
-    `creador` int(11) NOT NULL,
-    PRIMARY KEY (`id_cola`)
-  ) ENGINE = InnoDB DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
-
-
 # Dump of table company_data
 # ------------------------------------------------------------
 DROP TABLE
