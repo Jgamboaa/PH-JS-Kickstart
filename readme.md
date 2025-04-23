@@ -10,8 +10,8 @@ El sistema utiliza varias bibliotecas y dependencias que se instalan automática
 
 ### Requisitos del servidor
 
-- PHP 8.1 o superior
-- MySQL 5.7 o superior
+- PHP 8.3 o superior
+- MariaDB 10.11.11 o superior
 - Extensión PDO de PHP
 - Extensión mbstring de PHP
 - Extensión zip de PHP
