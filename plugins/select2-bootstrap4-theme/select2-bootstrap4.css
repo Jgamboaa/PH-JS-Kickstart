@@ -304,3 +304,26 @@ body.dark-mode .select2-container--bootstrap4 .select2-selection__choice {
   color: #ffffff; /* Texto en blanco */
   background-color: #3f6791; /* Fondo oscuro adecuado */
 }
+/* ————————————————————————  
+   Wrapper: que sea block y 100% ancho siempre  
+   ———————————————————————— */
+.select2-container--bootstrap4 {
+  display: block;
+  width: 100% !important;
+}
+
+/* ————————————————————————  
+   La caja de selección: que ocupe el 100%  
+   ———————————————————————— */
+.select2-container--bootstrap4 .select2-selection {
+  width: 100% !important;
+}
+
+/* ————————————————————————  
+   Dentro de un input-group: que flexione al ancho disponible  
+   ———————————————————————— */
+.input-group .select2-container--bootstrap4 {
+  /* 1 = grow, 1 = shrink; base width auto */
+  flex: 1 1 auto !important;
+  width: auto !important;
+}
