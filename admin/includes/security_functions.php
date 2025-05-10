@@ -11,7 +11,7 @@ function generateCSRFToken()
     return $_SESSION['csrf_token'];
 }
 
-function checkLoginAttempts($username)
+function checkLoginAttempts($username, $mail_support)
 {
     global $conn;
     $sql = "SELECT login_attempts, last_attempt FROM login_attempts WHERE username = ?";
@@ -52,7 +52,7 @@ function checkLoginAttempts($username)
                 </ul>
             ";
 
-            $destinatarios = ['isai.gamboa@nelixia.com'];
+            $destinatarios = [$mail_support];
             enviarCorreo($asunto, $cuerpo, $destinatarios, []);
 
             return false; // bloqueado

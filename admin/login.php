@@ -2,7 +2,7 @@
 require_once 'includes/session_config.php';
 require_once dirname(__DIR__) . '../config/db_conn.php';
 require_once 'includes/security_functions.php';
-
+$mail_support = env('MAIL_SUPPORT');
 header('Content-Type: application/json');
 $response = ['status' => false, 'message' => '', 'redirect' => false];
 
@@ -11,7 +11,7 @@ if (isset($_POST['login']) && isset($_POST['csrf_token']) && $_POST['csrf_token'
 	$username = filter_var($_POST['username'], FILTER_SANITIZE_EMAIL);
 	$password = $_POST['password'];
 
-	if (checkLoginAttempts($username))
+	if (checkLoginAttempts($username, $mail_support))
 	{
 		$sql = "SELECT * FROM admin WHERE username = ?";
 		$stmt = $conn->prepare($sql);
