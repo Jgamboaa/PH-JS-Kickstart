@@ -2,7 +2,7 @@
 require_once __DIR__ . '/session_config.php';
 require_once dirname(__DIR__) . '/../config/db_conn.php';
 require_once __DIR__ . '/security_functions.php';
-date_default_timezone_set('America/Guatemala');
+date_default_timezone_set(env('APP_TIMEZONE'));
 
 
 // Verificar y renovar la sesión
@@ -82,3 +82,20 @@ $rep_contract = $data['rep_contract'];
 $photoPath = '../images/admins/' . $user['photo'];
 $defaultPhoto = '../images/admins/profile.png';
 $photoSrc = (!empty($user['photo']) && file_exists($photoPath)) ? $photoPath : $defaultPhoto;
+
+if (env('APP_DEBUG') === 'true')
+{
+	// Configuración para modo de desarrollo
+	error_reporting(E_ALL);
+	ini_set('display_errors', 1);
+	ini_set('display_startup_errors', 1);
+	ini_set('log_errors', 1);
+}
+else
+{
+	// Configuración para producción
+	error_reporting(E_ERROR | E_PARSE | E_CORE_ERROR);
+	ini_set('display_errors', 0);
+	ini_set('display_startup_errors', 0);
+	ini_set('log_errors', 1);
+}
