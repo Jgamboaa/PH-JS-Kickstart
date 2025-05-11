@@ -31,5 +31,11 @@
                  <p>Roles</p>
              </a>
          </li>
+         <li class="nav-item">
+             <a href="#variables" class="nav-link">
+                 <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
+                 <p>Variables</p>
+             </a>
+         </li>
      </ul>
  </li>
