@@ -1,18 +1,12 @@
 <script>
 $(function() {
-    // Mostrar nombre del archivo seleccionado
-    $('.custom-file-input').on('change', function() {
-        var fileName = $(this).val().split('\\').pop();
-        $(this).next('.custom-file-label').html(fileName);
-    });
-
-    $('#branding_form').on('submit', function(e) {
+    $('#company_form').on('submit', function(e) {
         e.preventDefault();
-        var formData = new FormData(this);
+        var form = $(this);
         
         Swal.fire({
             title: '¿Estás seguro?',
-            text: "Se actualizarán las imágenes de la empresa",
+            text: "Se actualizará la información de la empresa",
             icon: 'warning',
             showCancelButton: true,
             confirmButtonText: 'Sí, actualizar',
@@ -20,12 +14,9 @@ $(function() {
         }).then((result) => {
             if (result.isConfirmed) {
                 $.ajax({
-                    url: 'includes/system/company_branding_edit.php',
-                    type: 'POST',
-                    data: formData,
-                    contentType: false,
-                    cache: false,
-                    processData: false,
+                    url: 'includes/system/company.php',
+                    method: 'POST',
+                    data: form.serialize(),
                     success: function(response) {
                         var data = JSON.parse(response);
                         if(data.status === 'success') {

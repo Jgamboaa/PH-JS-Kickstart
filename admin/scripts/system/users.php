@@ -2,7 +2,7 @@
     $(document).ready(function() {
         var table = $('#admins').DataTable({
             ajax: {
-                url: 'includes/system/users_crud.php',
+                url: 'includes/system/users.php',
                 type: 'GET',
                 data: function(d) {
                     d.crud = 'fetch';
@@ -62,7 +62,7 @@
 
             $.ajax({
                 type: 'POST',
-                url: 'includes/system/users_crud.php',
+                url: 'includes/system/users.php',
                 data: {
                     crud: 'get',
                     id: id
@@ -102,7 +102,7 @@
             var formData = new FormData(this);
             $.ajax({
                 type: 'POST',
-                url: 'includes/system/users_crud.php',
+                url: 'includes/system/users.php',
                 data: formData,
                 contentType: false,
                 processData: false,
@@ -132,7 +132,7 @@
                 if (result.isConfirmed) {
                     $.ajax({
                         type: 'POST',
-                        url: 'includes/system/users_crud.php',
+                        url: 'includes/system/users.php',
                         data: {
                             crud: 'delete',
                             id: id

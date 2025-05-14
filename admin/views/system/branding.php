@@ -4,9 +4,12 @@ include '../../includes/session.php';
 $admin_id = $user['id'];
 $roles_ids = explode(',', $user['roles_ids']);
 
-if (!in_array(1, $roles_ids)) {
+if (!in_array(1, $roles_ids))
+{
     include '403.php';
-} else {
+}
+else
+{
 
 ?>
 

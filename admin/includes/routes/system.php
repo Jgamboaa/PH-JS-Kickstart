@@ -1,20 +1,20 @@
 <?php
 return [
-    'admins' => [
-        'vista' => 'views/system/admins.php',
-        'scripts' => ['scripts/system/admins_scripts.php']
+    'users' => [
+        'vista' => 'views/system/users.php',
+        'scripts' => ['scripts/system/users.php']
     ],
     'company' => [
         'vista' => 'views/system/company.php',
-        'scripts' => ['scripts/system/company_scripts.php']
+        'scripts' => ['scripts/system/company.php']
     ],
-    'company_branding' => [
-        'vista' => 'views/system/company_branding.php',
-        'scripts' => ['scripts/system/company_branding_scripts.php']
+    'branding' => [
+        'vista' => 'views/system/branding.php',
+        'scripts' => ['scripts/system/branding.php']
     ],
     'roles' => [
         'vista' => 'views/system/roles.php',
-        'scripts' => ['scripts/system/roles_scripts.php']
+        'scripts' => ['scripts/system/roles.php']
     ],
     'variables' => [
         'vista' => 'views/system/variables.php',

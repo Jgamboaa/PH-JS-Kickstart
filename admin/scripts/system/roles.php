@@ -26,7 +26,7 @@
 
         $('#roles').on('click', '.edit-btn', function() {
             const id = $(this).data('id');
-            $.post('includes/system/roles_crud.php', {
+            $.post('includes/system/roles.php', {
                 crud: 'get',
                 id
             }, function(data) {
@@ -61,7 +61,7 @@
 
     function loadTable() {
         const table = $('#roles').DataTable({
-            ajax: 'includes/system/roles_crud.php?crud=fetch',
+            ajax: 'includes/system/roles.php?crud=fetch',
             columns: [{
                     data: 'id'
                 },
@@ -91,7 +91,7 @@
         const table = $('#roles').DataTable();
         const currentPage = table.page();
 
-        $.post('includes/system/roles_crud.php', {
+        $.post('includes/system/roles.php', {
             crud,
             ...data
         }, function(response) {

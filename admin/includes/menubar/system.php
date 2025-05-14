@@ -8,7 +8,7 @@
      </a>
      <ul class="nav nav-treeview">
          <li class="nav-item">
-             <a href="#admins" class="nav-link">
+             <a href="#users" class="nav-link">
                  <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
                  <p>Usuarios</p>
              </a>
@@ -20,7 +20,7 @@
              </a>
          </li>
          <li class="nav-item">
-             <a href="#company_branding" class="nav-link">
+             <a href="#branding" class="nav-link">
                  <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
                  <p>Imágenes</p>
              </a>
