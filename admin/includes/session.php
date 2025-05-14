@@ -62,22 +62,11 @@ $stmt = $conn->prepare($sql);
 $stmt->execute();
 $data = $stmt->fetch(PDO::FETCH_ASSOC);
 
-$rep_name = $data['rep_name'];
 $company_name = $data['company_name'];
 $company_name_short = $data['company_name_short'];
-$company_address = $data['address'];
-$rep_age_ltr = $data['rep_age_ltr'];
-$rep_marital_status = $data['rep_marital_status'];
-$rep_nacionality = $data['rep_nacionality'];
-$rep_studies = $data['rep_studies'];
-$rep_dpi_number = $data['rep_dpi_number'];
-$rep_position = $data['rep_position'];
-$company_nit = $data['company_nit'];
-$company_employers_number = $data['company_employers_number'];
 $app_name = $data['app_name'];
 $app_version = $data['app_version'];
 $developer_name = $data['developer_name'];
-$rep_contract = $data['rep_contract'];
 
 $photoPath = '../images/admins/' . $user['photo'];
 $defaultPhoto = '../images/admins/profile.png';

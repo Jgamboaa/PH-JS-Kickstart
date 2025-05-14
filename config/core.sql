@@ -59,22 +59,11 @@ DROP TABLE
 CREATE TABLE
   `company_data` (
     `id` int(11) NOT NULL AUTO_INCREMENT,
-    `rep_name` varchar(150) NOT NULL,
     `company_name` varchar(150) NOT NULL,
     `company_name_short` varchar(100) NOT NULL,
-    `address` text NOT NULL,
-    `rep_age_ltr` varchar(50) NOT NULL,
-    `rep_marital_status` varchar(50) NOT NULL,
-    `rep_nacionality` varchar(50) NOT NULL,
-    `rep_studies` varchar(100) NOT NULL,
-    `rep_dpi_number` varchar(50) NOT NULL,
-    `rep_position` varchar(150) NOT NULL,
-    `company_nit` varchar(50) NOT NULL,
-    `company_employers_number` varchar(50) NOT NULL,
     `app_name` varchar(50) NOT NULL,
     `app_version` varchar(20) NOT NULL,
     `developer_name` varchar(100) NOT NULL,
-    `rep_contract` mediumtext NOT NULL,
     PRIMARY KEY (`id`)
   ) ENGINE = InnoDB AUTO_INCREMENT = 2 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
@@ -89,42 +78,20 @@ LOCK TABLES `company_data` WRITE;
 INSERT INTO
   `company_data` (
     `id`,
-    `rep_name`,
     `company_name`,
     `company_name_short`,
-    `address`,
-    `rep_age_ltr`,
-    `rep_marital_status`,
-    `rep_nacionality`,
-    `rep_studies`,
-    `rep_dpi_number`,
-    `rep_position`,
-    `company_nit`,
-    `company_employers_number`,
     `app_name`,
     `app_version`,
-    `developer_name`,
-    `rep_contract`
+    `developer_name`
   )
 VALUES
   (
     1,
-    'Usuario',
     'Core',
     'Core',
-    'Ciudad',
-    'veinticeis años',
-    'Soltero',
-    'Guatemalteco',
-    'Bachiller',
-    '3019 21090 0101',
-    'Administrador Único y Representante Legal',
-    '0000',
-    '0000',
     'Core',
     '1.0',
-    'Isaí Gamboa',
-    'Texto'
+    'Isaí Gamboa'
   );
 
 
