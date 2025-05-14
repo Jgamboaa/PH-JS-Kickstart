@@ -1,6 +1,6 @@
 <?php
 include 'functions/mail_functions.php';
-date_default_timezone_set('America/Guatemala');
+date_default_timezone_set(env('APP_TIMEZONE'));
 
 function generateCSRFToken()
 {
