@@ -26,17 +26,12 @@ $csrf_token = generateCSRFToken();
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Login</title>
+  <title><?php echo $APP_NAME; ?> | Iniciar sesión</title>
   <link rel="icon" href="../images/favicon.png">
   <link rel="stylesheet" href="../plugins/sweetalert2/sweetalert2.css">
   <script src="../dist/js/config.js"></script>
   <link href="../dist/css/app.css" rel="stylesheet" type="text/css" id="app-style" />
-  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
-  <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/all.css">
-  <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-thin.css">
-  <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-solid.css">
-  <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-regular.css">
-  <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-light.css">
+  <link rel="stylesheet" href="../dist/css/icons.css">
 </head>
 
 <body class="authentication-bg position-relative">
