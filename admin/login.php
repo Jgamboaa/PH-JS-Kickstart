@@ -44,10 +44,14 @@ if (isset($_POST['login']) && isset($_POST['csrf_token']) && $_POST['csrf_token'
 						$_SESSION['2fa_pending'] = true;
 						$_SESSION['2fa_user_id'] = $row['id'];
 
-						$response['status'] = true;
-						$response['message'] = 'Se requiere verificación de dos factores';
-						$response['redirect'] = true;
-						$response['redirect_url'] = 'verificar_2fa.php';
+						// Responder con JSON para activar la verificación 2FA en la misma página
+						echo json_encode([
+							'status' => true,
+							'require_2fa' => true,
+							'user_id' => $row['id'],
+							'message' => 'Se requiere verificación de dos factores'
+						]);
+						exit();
 					}
 					else
 					{

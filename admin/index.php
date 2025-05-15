@@ -8,6 +8,7 @@ if (!file_exists(__DIR__ . '/../.env'))
 
 require_once 'includes/session_config.php';
 require_once 'includes/security_functions.php';
+require_once 'includes/functions/2fa_functions.php'; // Incluimos las funciones de 2FA
 
 if (isset($_SESSION['admin']))
 {
@@ -51,78 +52,118 @@ $csrf_token = generateCSRFToken();
 
             <div class="card-body p-4">
 
-              <div class="text-center w-75 m-auto">
-                <h4 class="text-dark-50 text-center pb-0 fw-bold">Inicia Sesión</h4>
-                <p class="text-muted mb-4">Ingresa tu usuario y contraseña para accederder al sistema</p>
+              <!-- Formulario de Login -->
+              <div id="login-form-container">
+                <div class="text-center w-75 m-auto">
+                  <h4 class="text-dark-50 text-center pb-0 fw-bold">Inicia Sesión</h4>
+                  <p class="text-muted mb-4">Ingresa tu usuario y contraseña para accederder al sistema</p>
+                </div>
+
+                <form action="login.php" method="post" class="needs-validation" novalidate id="loginForm">
+                  <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                  <input type="hidden" name="login" value="1">
+
+                  <?php if (isset($_SESSION['error'])): ?>
+                    <div class='alert alert-warning alert-dismissible fade show text-center' role='alert'>
+                      <strong><?php echo htmlspecialchars($_SESSION['error']); ?></strong>
+                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                    <?php unset($_SESSION['error']); ?>
+                  <?php endif; ?>
+
+                  <div class="mb-3">
+                    <label for="emailaddress" class="form-label">Correo</label>
+                    <div class="input-group input-group-merge">
+                      <input class="form-control" type="email" id="emailaddress"
+                        required placeholder="ejemplo@email.com" name="username"
+                        value="<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : ''; ?>">
+                      <div class="input-group-text" data-password="false">
+                        <i class="fa-duotone fa-solid fa-envelope fa-lg"></i>
+                      </div>
+                    </div>
+                    <div class="invalid-feedback">
+                      Por favor ingrese un correo válido
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="password" class="form-label">Contraseña</label>
+                    <div class="input-group input-group-merge">
+                      <input type="password" id="password" class="form-control" placeholder="Pass123#*" name="password" required>
+                      <div class="input-group-text" data-password="false">
+                        <i class="fa-duotone fa-solid fa-eye fa-lg"></i>
+                      </div>
+                    </div>
+                  </div>
+
+                  <div class="mb-3 mb-0 text-center">
+                    <button type="submit" class="btn btn-secondary" id="loginButton">
+                      <i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión
+                    </button>
+                  </div>
+
+                  <script>
+                    (function() {
+                      'use strict'
+                      var forms = document.querySelectorAll('.needs-validation')
+                      Array.prototype.slice.call(forms).forEach(function(form) {
+                        form.addEventListener('submit', function(event) {
+                          if (!form.checkValidity()) {
+                            event.preventDefault()
+                            event.stopPropagation()
+                          }
+                          form.classList.add('was-validated')
+                        }, false)
+                      })
+                    })()
+                  </script>
+
+                </form>
               </div>
 
-              <form action="login.php" method="post" class="needs-validation" novalidate id="loginForm">
-                <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                <input type="hidden" name="login" value="1">
-
-
-                <?php if (isset($_SESSION['error'])): ?>
-                  <div class='alert alert-warning alert-dismissible fade show text-center' role='alert'>
-                    <strong><?php echo htmlspecialchars($_SESSION['error']); ?></strong>
-                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                  </div>
-                  <?php unset($_SESSION['error']); ?>
-                <?php endif; ?>
-
-                <div class="mb-3">
-                  <label for="emailaddress" class="form-label">Correo</label>
-                  <div class="input-group input-group-merge">
-
-                    <input class="form-control" type="email" id="emailaddress"
-                      required placeholder="ejemplo@email.com" name="username"
-                      value="<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : ''; ?>">
-                    <div class="input-group-text" data-password="false">
-                      <i class="fa-duotone fa-solid fa-envelope fa-lg"></i>
-                    </div>
-                  </div>
-                  <div class="invalid-feedback">
-                    Por favor ingrese un correo válido
-                  </div>
+              <!-- Formulario de verificación 2FA (inicialmente oculto) -->
+              <div id="tfa-verification-container" style="display: none;">
+                <div class="text-center w-75 m-auto">
+                  <h4 class="text-dark-50 text-center pb-0 fw-bold">Verificación 2FA</h4>
+                  <p class="text-muted mb-4" id="tfa-prompt-message">Ingresa el código de verificación</p>
                 </div>
 
-                <div class="mb-3">
-                  <label for="password" class="form-label">Contraseña</label>
-                  <div class="input-group input-group-merge">
-                    <input type="password" id="password" class="form-control" placeholder="Pass123#*" name="password" required>
-                    <div class="input-group-text" data-password="false">
-                      <i class="fa-duotone fa-solid fa-eye fa-lg"></i>
+                <div id="tfa-error-message" class="alert alert-danger" style="display: none;"></div>
+
+                <form id="tfa-form" class="needs-validation" novalidate>
+                  <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                  <input type="hidden" id="tfa-user-id" name="user_id" value="">
+                  <input type="hidden" id="tfa-backup-mode" name="backup_mode" value="0">
+
+                  <div class="mb-3">
+                    <label for="tfa-code" class="form-label">Código</label>
+                    <div class="input-group input-group-merge">
+                      <input type="text" id="tfa-code" class="form-control" name="code"
+                        placeholder="Código de 6 dígitos" autocomplete="off" required>
+                      <div class="input-group-text">
+                        <i class="fa-duotone fa-solid fa-shield-alt fa-lg"></i>
+                      </div>
                     </div>
                   </div>
-                </div>
 
-                <div class="mb-3 mb-0 text-center">
-                  <button type="submit" class="btn btn-secondary" id="loginButton">
-                    <i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión
+                  <div class="mb-3 text-center">
+                    <button type="submit" class="btn btn-secondary" id="verify-tfa-button">
+                      <i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar
+                    </button>
+                  </div>
+                </form>
+
+                <div class="mt-3 text-center">
+                  <p><a href="#" id="toggle-backup-code">¿Problemas con tu autenticador? Usar código de respaldo</a></p>
+                  <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="cancel-tfa-button">
+                    Cancelar
                   </button>
                 </div>
+              </div>
 
-                <script>
-                  (function() {
-                    'use strict'
-                    var forms = document.querySelectorAll('.needs-validation')
-                    Array.prototype.slice.call(forms).forEach(function(form) {
-                      form.addEventListener('submit', function(event) {
-                        if (!form.checkValidity()) {
-                          event.preventDefault()
-                          event.stopPropagation()
-                        }
-                        form.classList.add('was-validated')
-                      }, false)
-                    })
-                  })()
-                </script>
-
-              </form>
             </div>
           </div>
           <!-- end card -->
-          <!-- end row -->
-
         </div> <!-- end col -->
       </div>
       <!-- end row -->
@@ -213,15 +254,16 @@ $csrf_token = generateCSRFToken();
           data: $form.serialize(),
           dataType: 'json',
           success: function(response) {
-            if (response.status && response.redirect) {
-              // Verificar si hay una URL de redirección específica para 2FA
-              const redirectUrl = response.redirect_url || 'home.php';
-
-              if (redirectUrl === 'verificar_2fa.php') {
-                // Si es redirección a verificación 2FA, redirigir sin mensaje de éxito
-                window.location.href = redirectUrl;
-              } else {
-                // Para otras redirecciones, mostrar mensaje de éxito
+            if (response.status) {
+              if (response.require_2fa) {
+                // Mostrar formulario de verificación 2FA
+                $('#login-form-container').hide();
+                $('#tfa-verification-container').show();
+                $('#tfa-user-id').val(response.user_id);
+                $('#tfa-code').focus();
+                $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
+              } else if (response.redirect) {
+                // Redirección normal
                 Swal.fire({
                   icon: 'success',
                   title: 'Éxito',
@@ -229,11 +271,11 @@ $csrf_token = generateCSRFToken();
                   timer: 1500,
                   showConfirmButton: false
                 }).then(function() {
-                  window.location.href = redirectUrl;
+                  window.location.href = response.redirect_url || 'home.php';
                 });
               }
             } else {
-              $button.prop('disabled', false).html('<i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión');
+              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
               if (response.blocked) {
                 setTimeout(function() {
                   $button.prop('disabled', false);
@@ -247,11 +289,116 @@ $csrf_token = generateCSRFToken();
             }
           },
           error: function() {
-            $button.prop('disabled', false).html('<i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión');
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
             Swal.fire({
               icon: 'error',
               title: 'Error',
               text: 'Error en la conexión'
+            });
+          }
+        });
+      });
+
+      // Manejar envío del formulario 2FA
+      $('#tfa-form').on('submit', function(e) {
+        e.preventDefault();
+        var $button = $('#verify-tfa-button');
+        var code = $('#tfa-code').val().trim();
+        var userId = $('#tfa-user-id').val();
+        var useBackupCode = $('#tfa-backup-mode').val() === '1';
+
+        if (!code) {
+          $('#tfa-error-message').text('Por favor ingresa un código').show();
+          return;
+        }
+
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
+        $('#tfa-error-message').hide();
+
+        // Realizar verificación 2FA mediante AJAX
+        $.ajax({
+          url: 'verify_2fa_ajax.php',
+          type: 'POST',
+          data: {
+            code: code,
+            user_id: userId,
+            backup_mode: useBackupCode ? 1 : 0,
+            csrf_token: $('input[name="csrf_token"]').val()
+          },
+          dataType: 'json',
+          success: function(response) {
+            if (response.status) {
+              // Autenticación exitosa
+              Swal.fire({
+                icon: 'success',
+                title: 'Verificación exitosa',
+                text: 'Redirigiendo al panel de administración',
+                timer: 1500,
+                showConfirmButton: false
+              }).then(function() {
+                window.location.href = response.redirect_url || 'home.php';
+              });
+            } else {
+              // Error de verificación
+              $('#tfa-error-message').text(response.message).show();
+              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+            }
+          },
+          error: function() {
+            $('#tfa-error-message').text('Error en la conexión. Inténtalo de nuevo.').show();
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+          }
+        });
+      });
+
+      // Cambiar entre código normal y código de respaldo
+      $('#toggle-backup-code').on('click', function(e) {
+        e.preventDefault();
+        var useBackupMode = $('#tfa-backup-mode').val() === '0';
+        $('#tfa-backup-mode').val(useBackupMode ? '1' : '0');
+
+        if (useBackupMode) {
+          // Cambiar a modo de código de respaldo
+          $('#tfa-prompt-message').text('Ingresa un código de respaldo');
+          $('#tfa-code').attr('placeholder', 'Código de respaldo');
+          $(this).text('Usar código de aplicación en su lugar');
+        } else {
+          // Cambiar a modo de código normal
+          $('#tfa-prompt-message').text('Ingresa el código de verificación de tu aplicación de autenticación');
+          $('#tfa-code').attr('placeholder', 'Código de 6 dígitos');
+          $(this).text('¿Problemas con tu autenticador? Usar código de respaldo');
+        }
+
+        $('#tfa-code').focus();
+      });
+
+      // Cancelar verificación 2FA
+      $('#cancel-tfa-button').on('click', function() {
+        // Mostrar confirmación antes de cancelar
+        Swal.fire({
+          title: '¿Cancelar inicio de sesión?',
+          text: 'Serás redirigido a la pantalla de inicio de sesión',
+          icon: 'question',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, cancelar',
+          cancelButtonText: 'No, continuar'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            // Resetear el formulario y volver a la pantalla de login
+            $.ajax({
+              url: 'verify_2fa_ajax.php',
+              type: 'POST',
+              data: {
+                action: 'cancel',
+                csrf_token: $('input[name="csrf_token"]').val()
+              },
+              dataType: 'json',
+              complete: function() {
+                $('#tfa-verification-container').hide();
+                $('#login-form-container').show();
+                $('#tfa-form')[0].reset();
+                $('#tfa-error-message').hide();
+              }
             });
           }
         });
