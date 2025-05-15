@@ -23,7 +23,7 @@ function generateTOTPSecret()
  * @param string $issuer Nombre de la aplicación/sistema
  * @return TOTP Instancia de TOTP configurada
  */
-function createTOTP($secret, $label, $issuer = 'Sistema Admin')
+function createTOTP($secret, $label, $issuer = 'Sistema')
 {
     $totp = TOTP::create($secret);
     $totp->setLabel($label);

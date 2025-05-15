@@ -3,6 +3,7 @@
 
 require_once '../session.php';
 require_once '../functions/2fa_functions.php';
+$nombre_sistema = env('APP_NAME');
 
 // Verificar si el usuario está autenticado
 if (!isset($_SESSION['admin']))
@@ -37,7 +38,7 @@ switch ($action)
     case 'setup':
         // Generar un nuevo secreto para configurar 2FA
         $newSecret = generateTOTPSecret();
-        $totp = createTOTP($newSecret, $user['username'], 'Sistema Admin');
+        $totp = createTOTP($newSecret, $user['username'], $nombre_sistema);
         // Obtenemos la URI de aprovisionamiento para generar el QR con qrcode.js
         $provisioningUri = $totp->getProvisioningUri();
 
