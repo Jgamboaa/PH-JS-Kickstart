@@ -1,6 +1,4 @@
 <?php
-// filepath: c:\laragon\www\PH-JS-Kickstart\admin\configurar_2fa.php
-
 require_once 'includes/session.php';
 require_once 'includes/functions/2fa_functions.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';

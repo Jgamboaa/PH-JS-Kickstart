@@ -1,6 +1,4 @@
 <?php
-// filepath: c:\laragon\www\PH-JS-Kickstart\admin\includes\system\twofa_ajax.php
-
 require_once '../session.php';
 require_once '../functions/2fa_functions.php';
 $nombre_sistema = env('APP_NAME');
