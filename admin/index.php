@@ -9,6 +9,8 @@ if (!file_exists(__DIR__ . '/../.env'))
 require_once 'includes/session_config.php';
 require_once 'includes/security_functions.php';
 require_once 'includes/functions/2fa_functions.php'; // Incluimos las funciones de 2FA
+require_once dirname(__DIR__) . '../config/env_reader.php';
+$APP_NAME = env('APP_NAME');
 
 if (isset($_SESSION['admin']))
 {
@@ -180,7 +182,7 @@ $csrf_token = generateCSRFToken();
     <span>
       <script>
         document.write(new Date().getFullYear())
-      </script> - Core
+      </script> - <?php echo $APP_NAME; ?>
     </span>
   </footer>
   <script src="../dist/js/vendor.min.js"></script>
