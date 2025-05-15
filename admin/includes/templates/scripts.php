@@ -277,7 +277,7 @@ if (!isset($range_to))
                                         <label for="deactivate_otp">Introduce tu código de autenticación actual:</label>
                                         <input type="text" class="form-control form-control-sm" id="deactivate_otp" name="otp" required placeholder="Código de 6 dígitos" pattern="[0-9]{6}" maxlength="6">
                                     </div>
-                                    <button type="submit" class="btn btn-sm btn-danger btn-block">Desactivar 2FA</button>
+                                    <button type="submit" class="btn btn-danger btn-block">Desactivar 2FA</button>
                                 </form>
                             </div>
                         </div>
@@ -295,10 +295,10 @@ if (!isset($range_to))
                                     </div>
                                     <div class="row">
                                         <div class="col-md-6">
-                                            <button type="button" class="btn btn-sm btn-warning btn-block" id="showBackupBtn">Ver códigos</button>
+                                            <button type="button" class="btn btn-warning btn-block" id="showBackupBtn">Ver códigos</button>
                                         </div>
                                         <div class="col-md-6">
-                                            <button type="button" class="btn btn-sm btn-info btn-block" id="regenerateBackupBtn">Regenerar códigos</button>
+                                            <button type="button" class="btn btn-info btn-block" id="regenerateBackupBtn">Regenerar códigos</button>
                                         </div>
                                     </div>
                                 </form>
@@ -310,15 +310,10 @@ if (!isset($range_to))
       } else if (tfaStatus.hasSecret) {
         // Tiene secreto pero 2FA está desactivado - opción para reactivar
         content = `
-                <div class="text-center mb-4">
-                    <h5>Reactivar autenticación de dos factores</h5>
-                    <p>Tienes 2FA configurado pero está <span class="badge bg-danger">Desactivado</span></p>
-                </div>
-
                 <div class="row justify-content-center">
-                    <div class="col-md-6">
+                    <div class="col">
                         <div class="alert alert-info">
-                            <p>Ya tienes 2FA configurado anteriormente. Puedes reactivarlo ingresando un código de verificación generado por tu aplicación de autenticación.</p>
+                            <p>Ya tienes 2FA configurado anteriormente, pero esta <span class="badge bg-danger">desactivado</span>. Puedes reactivarlo ingresando un código de verificación generado por tu aplicación de autenticación.</p>
                         </div>
                         <div class="card">
                             <div class="card-body">
@@ -554,16 +549,16 @@ if (!isset($range_to))
             </div>
 
             <div class="row justify-content-center">
-                <div class="col-md-5">
-                    <div class="card mb-3">
+                <div class="col-md-6">
+                    <div class="card">
                         <div class="card-header bg-info text-white">
-                            <h5 class="m-0">Escanea este código QR</h5>
+                            <b>Escanea este código QR</b>
                         </div>
-                        <div class="card-body text-center">
-                            <div id="qrcode" class="mb-3"></div>
-                            <p class="mb-1">o ingresa manualmente esta clave:</p>
+                        <div class="card-body">
+                            <div id="qrcode"></div>
+                            <p class="mt-2">o ingresa manualmente esta clave:</p>
                             <div class="input-group">
-                                <input type="text" class="form-control" value="${secret}" readonly id="secretKey">
+                                <input type="text" class="form-control form-cotrol-sm" value="${secret}" readonly id="secretKey">
                                 <div class="input-group-append">
                                     <button class="btn btn-outline-secondary" type="button" id="copySecretBtn">
                                         <i class="fa fa-duotone fa-solid fa-copy"></i>
@@ -574,10 +569,10 @@ if (!isset($range_to))
                     </div>
                 </div>
                 
-                <div class="col-md-7">
+                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-primary text-white">
-                            <h5 class="m-0">Instrucciones</h5>
+                            <b>Instrucciones</b>
                         </div>
                         <div class="card-body">
                             <ol>
@@ -601,8 +596,14 @@ if (!isset($range_to))
 
       $("#tfa_content_container").html(setupHtml);
 
+      // Centrando el contenedor del código QR
+      const qrcodeContainer = document.getElementById("qrcode");
+      qrcodeContainer.style.display = "flex";
+      qrcodeContainer.style.alignItems = "center";
+      qrcodeContainer.style.justifyContent = "center";
+
       // Generar código QR
-      new QRCode(document.getElementById("qrcode"), {
+      new QRCode(qrcodeContainer, {
         text: qrUri,
         width: 200,
         height: 200,
