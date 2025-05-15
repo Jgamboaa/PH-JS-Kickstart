@@ -43,14 +43,16 @@ echo "<nav class='main-header navbar navbar-expand $navbarClass'>";
       <!-- Menu Footer-->
       <li class="user-footer">
         <div class="row">
-          <div class="col-lg-4 mb-2">
-            <a href="#profile" data-toggle="modal" class="btn btn-primary btn-sm btn-block" id="admin_profile">Perfil</a>
+          <div class="col-lg-6 mb-2">
+            <a href="configurar_2fa.php" class="btn btn-primary btn-sm btn-block">Config 2FA</a>
           </div>
-          <div class="col-lg-4 mb-2">
-            <a href="configurar_2fa.php" class="btn btn-info btn-sm btn-block">Config 2FA</a>
-          </div>
-          <div class="col-lg-4">
+          <div class="col-lg-6 mb-2">
             <a href="logout.php" class="btn btn-primary btn-sm btn-block">Cerrar Sesión</a>
+          </div>
+        </div>
+        <div class="row">
+          <div class="col">
+            <a href="#profile" data-toggle="modal" class="btn btn-primary btn-sm btn-block" id="admin_profile">Perfil</a>
           </div>
         </div>
       </li>
