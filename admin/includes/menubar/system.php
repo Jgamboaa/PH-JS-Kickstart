@@ -37,5 +37,11 @@
                  <p>Variables</p>
              </a>
          </li>
+         <li class="nav-item">
+             <a href="#security" class="nav-link">
+                 <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
+                 <p>Seguridad</p>
+             </a>
+         </li>
      </ul>
  </li>

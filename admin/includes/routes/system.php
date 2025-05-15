@@ -20,4 +20,8 @@ return [
         'vista' => 'views/system/variables.php',
         'scripts' => ['scripts/system/variables.php']
     ],
+    'security' => [
+        'vista' => 'views/system/security.php',
+        'scripts' => ['scripts/system/security.php']
+    ],
 ];

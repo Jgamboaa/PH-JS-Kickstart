@@ -37,22 +37,38 @@ if (isset($_POST['login']) && isset($_POST['csrf_token']) && $_POST['csrf_token'
 					session_regenerate_id(true);
 					logLoginActivity($username, true);
 
-					// Validación para el saludo según el género y si es primera vez o no
-					if (empty($row['last_login']))
+					// Verificar si el usuario tiene 2FA activado
+					if ($row['tfa_enabled'] == 1)
 					{
-						$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+						// Configurar sesión para verificación 2FA
+						$_SESSION['2fa_pending'] = true;
+						$_SESSION['2fa_user_id'] = $row['id'];
+
+						$response['status'] = true;
+						$response['message'] = 'Se requiere verificación de dos factores';
+						$response['redirect'] = true;
+						$response['redirect_url'] = 'verificar_2fa.php';
 					}
 					else
 					{
-						$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+						// Proceso normal sin 2FA
+						// Validación para el saludo según el género y si es primera vez o no
+						if (empty($row['last_login']))
+						{
+							$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+						}
+						else
+						{
+							$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+						}
+
+						$_SESSION['admin'] = $row['id'];
+						$_SESSION['last_activity'] = time();
+
+						$response['status'] = true;
+						$response['message'] = $saludo_login . ' ' . $row['user_firstname'] . '!';
+						$response['redirect'] = true;
 					}
-
-					$_SESSION['admin'] = $row['id'];
-					$_SESSION['last_activity'] = time();
-
-					$response['status'] = true;
-					$response['message'] = $saludo_login . ' ' . $row['user_firstname'] . '!';
-					$response['redirect'] = true;
 				}
 			}
 			else

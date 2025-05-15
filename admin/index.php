@@ -214,15 +214,24 @@ $csrf_token = generateCSRFToken();
           dataType: 'json',
           success: function(response) {
             if (response.status && response.redirect) {
-              Swal.fire({
-                icon: 'success',
-                title: 'Éxito',
-                text: response.message,
-                timer: 1500,
-                showConfirmButton: false
-              }).then(function() {
-                window.location.href = 'home.php';
-              });
+              // Verificar si hay una URL de redirección específica para 2FA
+              const redirectUrl = response.redirect_url || 'home.php';
+
+              if (redirectUrl === 'verificar_2fa.php') {
+                // Si es redirección a verificación 2FA, redirigir sin mensaje de éxito
+                window.location.href = redirectUrl;
+              } else {
+                // Para otras redirecciones, mostrar mensaje de éxito
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Éxito',
+                  text: response.message,
+                  timer: 1500,
+                  showConfirmButton: false
+                }).then(function() {
+                  window.location.href = redirectUrl;
+                });
+              }
             } else {
               $button.prop('disabled', false).html('<i class="bi bi-box-arrow-in-right me-1"></i> Iniciar sesión');
               if (response.blocked) {
