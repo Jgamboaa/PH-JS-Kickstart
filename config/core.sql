@@ -46,6 +46,9 @@ CREATE TABLE
     `roles_ids` varchar(50) DEFAULT NULL,
     `admin_gender` varchar(30) DEFAULT NULL,
     `admin_estado` int(11) NOT NULL DEFAULT 0,
+    `tfa_secret` VARCHAR(100) NULL,
+    `tfa_enabled` TINYINT(1) NOT NULL DEFAULT 0,
+    `tfa_backup_codes` TEXT NULL,
     PRIMARY KEY (`id`)
   ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
