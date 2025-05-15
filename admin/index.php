@@ -52,31 +52,20 @@ $csrf_token = generateCSRFToken();
 
             <div class="card-body p-4">
 
-              <!-- Formulario de Login -->
-              <div id="login-form-container">
+              <!-- Paso 1: Formulario de verificación de correo electrónico -->
+              <div id="email-check-container">
                 <div class="text-center w-75 m-auto">
                   <h4 class="text-dark-50 text-center pb-0 fw-bold">Inicia Sesión</h4>
-                  <p class="text-muted mb-4">Ingresa tu usuario y contraseña para accederder al sistema</p>
+                  <p class="text-muted mb-4">Ingresa tu correo electrónico para continuar</p>
                 </div>
 
-                <form action="login.php" method="post" class="needs-validation" novalidate id="loginForm">
+                <form id="emailCheckForm" class="needs-validation" novalidate>
                   <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
-                  <input type="hidden" name="login" value="1">
-
-                  <?php if (isset($_SESSION['error'])): ?>
-                    <div class='alert alert-warning alert-dismissible fade show text-center' role='alert'>
-                      <strong><?php echo htmlspecialchars($_SESSION['error']); ?></strong>
-                      <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                    </div>
-                    <?php unset($_SESSION['error']); ?>
-                  <?php endif; ?>
 
                   <div class="mb-3">
                     <label for="emailaddress" class="form-label">Correo</label>
                     <div class="input-group input-group-merge">
-                      <input class="form-control" type="email" id="emailaddress"
-                        required placeholder="ejemplo@email.com" name="username"
-                        value="<?php echo isset($_SESSION['username']) ? htmlspecialchars($_SESSION['username']) : ''; ?>">
+                      <input class="form-control" type="email" id="emailaddress" required placeholder="ejemplo@email.com" name="username">
                       <div class="input-group-text" data-password="false">
                         <i class="fa-duotone fa-solid fa-envelope fa-lg"></i>
                       </div>
@@ -84,6 +73,31 @@ $csrf_token = generateCSRFToken();
                     <div class="invalid-feedback">
                       Por favor ingrese un correo válido
                     </div>
+                  </div>
+
+                  <div class="mb-3 mb-0 text-center">
+                    <button type="submit" class="btn btn-secondary" id="checkEmailButton">
+                      <i class="fa-duotone fa-solid fa-arrow-right fa-lg me-1"></i> Continuar
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              <!-- Paso 2: Formulario de Login con contraseña (inicialmente oculto) -->
+              <div id="password-login-container" style="display: none;">
+                <div class="text-center w-75 m-auto">
+                  <h4 class="text-dark-50 text-center pb-0 fw-bold">Inicia Sesión</h4>
+                  <p class="text-muted mb-4">Ingresa tu contraseña para acceder</p>
+                </div>
+
+                <form action="login.php" method="post" class="needs-validation" novalidate id="passwordLoginForm">
+                  <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                  <input type="hidden" name="login_password" value="1">
+                  <input type="hidden" id="password-username" name="username">
+
+                  <div class="mb-3">
+                    <label class="form-label">Correo</label>
+                    <p class="form-control-static" id="display-email"></p>
                   </div>
 
                   <div class="mb-3">
@@ -101,24 +115,11 @@ $csrf_token = generateCSRFToken();
                       <i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión
                     </button>
                   </div>
-
-                  <script>
-                    (function() {
-                      'use strict'
-                      var forms = document.querySelectorAll('.needs-validation')
-                      Array.prototype.slice.call(forms).forEach(function(form) {
-                        form.addEventListener('submit', function(event) {
-                          if (!form.checkValidity()) {
-                            event.preventDefault()
-                            event.stopPropagation()
-                          }
-                          form.classList.add('was-validated')
-                        }, false)
-                      })
-                    })()
-                  </script>
-
                 </form>
+
+                <div class="text-center mt-3">
+                  <button type="button" class="btn btn-link" id="change-email-button">Cambiar correo</button>
+                </div>
               </div>
 
               <!-- Formulario de verificación 2FA (inicialmente oculto) -->
@@ -128,12 +129,17 @@ $csrf_token = generateCSRFToken();
                   <p class="text-muted mb-4" id="tfa-prompt-message">Ingresa el código de verificación</p>
                 </div>
 
-                <div id="tfa-error-message" class="alert alert-danger" style="display: none;"></div>
-
                 <form id="tfa-form" class="needs-validation" novalidate>
                   <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                  <input type="hidden" name="login_2fa" value="1">
                   <input type="hidden" id="tfa-user-id" name="user_id" value="">
+                  <input type="hidden" id="tfa-username" name="username">
                   <input type="hidden" id="tfa-backup-mode" name="backup_mode" value="0">
+
+                  <div class="mb-3">
+                    <label class="form-label">Correo</label>
+                    <p class="form-control-static" id="tfa-display-email"></p>
+                  </div>
 
                   <div class="mb-3">
                     <label for="tfa-code" class="form-label">Código</label>
@@ -155,9 +161,7 @@ $csrf_token = generateCSRFToken();
 
                 <div class="mt-3 text-center">
                   <p><a href="#" id="toggle-backup-code">¿Problemas con tu autenticador? Usar código de respaldo</a></p>
-                  <button type="button" class="btn btn-outline-secondary btn-sm mt-2" id="cancel-tfa-button">
-                    Cancelar
-                  </button>
+                  <button type="button" class="btn btn-link" id="tfa-change-email-button">Cambiar correo</button>
                 </div>
               </div>
 
@@ -193,63 +197,102 @@ $csrf_token = generateCSRFToken();
       return password.length >= 6; // Mínimo 6 caracteres
     }
 
-    // Elementos del formulario
-    const emailInput = document.getElementById('emailaddress');
-    const passwordInput = document.getElementById('password');
-    const form = document.querySelector('.needs-validation');
-
-    // Validación en tiempo real para email
-    emailInput.addEventListener('input', function() {
-      if (validateEmail(this.value)) {
-        this.classList.remove('is-invalid');
-        this.classList.add('is-valid');
-      } else {
-        this.classList.remove('is-valid');
-        this.classList.add('is-invalid');
-      }
-    });
-
-    // Validación en tiempo real para password
-    passwordInput.addEventListener('input', function() {
-      if (validatePassword(this.value)) {
-        this.classList.remove('is-invalid');
-        this.classList.add('is-valid');
-      } else {
-        this.classList.remove('is-valid');
-        this.classList.add('is-invalid');
-      }
-    });
-
-    // Mantener la validación del submit
-    form.addEventListener('submit', function(event) {
-      if (!form.checkValidity() || !validateEmail(emailInput.value) || !validatePassword(passwordInput.value)) {
-        event.preventDefault();
-        event.stopPropagation();
-      }
-      form.classList.add('was-validated');
-    });
-
     $(document).ready(function() {
-      $('#loginForm').on('submit', function(e) {
+      // Evento para verificar el correo electrónico
+      $('#emailCheckForm').on('submit', function(e) {
         e.preventDefault();
-        var $form = $(this);
-        var $button = $('#loginButton');
+        const email = $('#emailaddress').val().trim();
 
-        // Validar correo antes de intentar el login
-        const email = $('#emailaddress').val();
         if (!validateEmail(email)) {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Por favor ingrese un correo electrónico válido'
+            text: 'Por favor ingresa un correo electrónico válido'
           });
-          return false;
+          return;
+        }
+
+        var $button = $('#checkEmailButton');
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
+
+        // Llamar al nuevo endpoint para verificar el tipo de autenticación
+        $.ajax({
+          url: 'check_user_auth_type.php',
+          type: 'POST',
+          data: {
+            username: email,
+            csrf_token: $('input[name="csrf_token"]').val()
+          },
+          dataType: 'json',
+          success: function(response) {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-arrow-right fa-lg me-1"></i> Continuar');
+
+            if (response.status) {
+              // Mostrar el formulario correspondiente según el tipo de autenticación
+              $('#email-check-container').hide();
+
+              if (response.auth_type === 'password') {
+                // Mostrar formulario de contraseña
+                $('#password-username').val(email);
+                $('#display-email').text(email);
+                $('#password-login-container').show();
+                $('#password').focus();
+              } else if (response.auth_type === '2fa') {
+                // Mostrar formulario 2FA
+                $('#tfa-user-id').val(response.user_id);
+                $('#tfa-username').val(email);
+                $('#tfa-display-email').text(email);
+                $('#tfa-verification-container').show();
+                $('#tfa-code').focus();
+              }
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message
+              });
+
+              if (response.blocked) {
+                $('#emailaddress').prop('disabled', true);
+                $button.prop('disabled', true);
+                setTimeout(function() {
+                  $('#emailaddress').prop('disabled', false);
+                  $button.prop('disabled', false);
+                }, 180000); // 3 minutos
+              }
+            }
+          },
+          error: function() {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-arrow-right fa-lg me-1"></i> Continuar');
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error en la conexión'
+            });
+          }
+        });
+      });
+
+      // Manejar el envío del formulario de contraseña
+      $('#passwordLoginForm').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $button = $('#loginButton');
+        var password = $('#password').val();
+
+        if (!validatePassword(password)) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'La contraseña debe tener al menos 6 caracteres'
+          });
+          return;
         }
 
         $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Cargando...');
 
         $.ajax({
-          url: $form.attr('action'),
+          url: 'login.php',
           type: 'POST',
           data: $form.serialize(),
           dataType: 'json',
@@ -257,7 +300,7 @@ $csrf_token = generateCSRFToken();
             if (response.status) {
               if (response.require_2fa) {
                 // Mostrar formulario de verificación 2FA
-                $('#login-form-container').hide();
+                $('#password-login-container').hide();
                 $('#tfa-verification-container').show();
                 $('#tfa-user-id').val(response.user_id);
                 $('#tfa-code').focus();
@@ -304,27 +347,23 @@ $csrf_token = generateCSRFToken();
         e.preventDefault();
         var $button = $('#verify-tfa-button');
         var code = $('#tfa-code').val().trim();
-        var userId = $('#tfa-user-id').val();
-        var useBackupCode = $('#tfa-backup-mode').val() === '1';
 
         if (!code) {
-          $('#tfa-error-message').text('Por favor ingresa un código').show();
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Por favor ingresa un código'
+          });
           return;
         }
 
         $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
-        $('#tfa-error-message').hide();
 
         // Realizar verificación 2FA mediante AJAX
         $.ajax({
-          url: 'verify_2fa_ajax.php',
+          url: 'login.php',
           type: 'POST',
-          data: {
-            code: code,
-            user_id: userId,
-            backup_mode: useBackupCode ? 1 : 0,
-            csrf_token: $('input[name="csrf_token"]').val()
-          },
+          data: $(this).serialize(),
           dataType: 'json',
           success: function(response) {
             if (response.status) {
@@ -332,7 +371,7 @@ $csrf_token = generateCSRFToken();
               Swal.fire({
                 icon: 'success',
                 title: 'Verificación exitosa',
-                text: 'Redirigiendo al panel de administración',
+                text: response.message,
                 timer: 1500,
                 showConfirmButton: false
               }).then(function() {
@@ -340,13 +379,21 @@ $csrf_token = generateCSRFToken();
               });
             } else {
               // Error de verificación
-              $('#tfa-error-message').text(response.message).show();
               $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message
+              });
             }
           },
           error: function() {
-            $('#tfa-error-message').text('Error en la conexión. Inténtalo de nuevo.').show();
             $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error en la conexión. Inténtalo de nuevo.'
+            });
           }
         });
       });
@@ -372,43 +419,31 @@ $csrf_token = generateCSRFToken();
         $('#tfa-code').focus();
       });
 
-      // Cancelar verificación 2FA
-      $('#cancel-tfa-button').on('click', function() {
-        // Mostrar confirmación antes de cancelar
-        Swal.fire({
-          title: '¿Cancelar inicio de sesión?',
-          text: 'Serás redirigido a la pantalla de inicio de sesión',
-          icon: 'question',
-          showCancelButton: true,
-          confirmButtonText: 'Sí, cancelar',
-          cancelButtonText: 'No, continuar'
-        }).then((result) => {
-          if (result.isConfirmed) {
-            // Resetear el formulario y volver a la pantalla de login
-            $.ajax({
-              url: 'verify_2fa_ajax.php',
-              type: 'POST',
-              data: {
-                action: 'cancel',
-                csrf_token: $('input[name="csrf_token"]').val()
-              },
-              dataType: 'json',
-              complete: function() {
-                $('#tfa-verification-container').hide();
-                $('#login-form-container').show();
-                $('#tfa-form')[0].reset();
-                $('#tfa-error-message').hide();
-              }
-            });
-          }
-        });
+      // Botones para cambiar de correo
+      $('#change-email-button, #tfa-change-email-button').on('click', function() {
+        $('#email-check-container').show();
+        $('#password-login-container, #tfa-verification-container').hide();
+        $('#emailaddress').focus();
+        $('#tfa-form, #passwordLoginForm')[0].reset();
+      });
+
+      // Toggle de visibilidad para la contraseña
+      $('.input-group-text[data-password]').on('click', function() {
+        const isVisible = $(this).data('password') === true;
+        const passwordField = $(this).siblings('input');
+
+        if (isVisible) {
+          $(this).data('password', false);
+          $(this).html('<i class="fa-duotone fa-solid fa-eye fa-lg"></i>');
+          passwordField.attr('type', 'password');
+        } else {
+          $(this).data('password', true);
+          $(this).html('<i class="fa-duotone fa-solid fa-eye-slash fa-lg"></i>');
+          passwordField.attr('type', 'text');
+        }
       });
     });
   </script>
 </body>
-
-<?php
-unset($_SESSION['username']);
-?>
 
 </html>
