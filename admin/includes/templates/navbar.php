@@ -44,7 +44,7 @@ echo "<nav class='main-header navbar navbar-expand $navbarClass'>";
       <li class="user-footer">
         <div class="row">
           <div class="col-lg-6 mb-2">
-            <a href="configurar_2fa.php" class="btn btn-primary btn-sm btn-block">Config 2FA</a>
+            <a href="#" class="btn btn-primary btn-sm btn-block config-2fa-btn">Config 2FA</a>
           </div>
           <div class="col-lg-6 mb-2">
             <a href="logout.php" class="btn btn-primary btn-sm btn-block">Cerrar Sesión</a>

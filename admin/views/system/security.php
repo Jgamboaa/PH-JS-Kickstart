@@ -56,10 +56,9 @@ else
                                     <li>Reducción de riesgos de accesos no autorizados</li>
                                 </ul>
                             </div>
-
                             <p>Cada usuario puede configurar su autenticación de dos factores desde su perfil o utilizando el botón de "Config 2FA" en el menú de usuario.</p>
 
-                            <a href="configurar_2fa.php" class="btn btn-primary">Configurar mi 2FA</a>
+                            <a href="#" class="btn btn-primary config-2fa-btn">Configurar mi 2FA</a>
                         </div>
                     </div>
                 </div>

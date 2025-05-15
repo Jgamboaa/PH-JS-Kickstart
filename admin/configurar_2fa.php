@@ -5,6 +5,11 @@ require_once 'includes/session.php';
 require_once 'includes/functions/2fa_functions.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 
+// Redirigir al nuevo sistema basado en modal
+header('Location: configurar_2fa_redirect.php');
+exit();
+
+// Código antiguo que ya no se utiliza
 // Verificar si el usuario está autenticado
 if (!isset($_SESSION['admin']))
 {
@@ -30,7 +35,7 @@ $showBackupCodes = false;
 if (isset($_GET['setup']) || empty($user['tfa_secret']))
 {
     $newSecret = generateTOTPSecret();
-    $totp = createTOTP($newSecret, $user['username'], 'Sistema Admin');    
+    $totp = createTOTP($newSecret, $user['username'], 'Sistema Admin');
     // Obtenemos la URI de aprovisionamiento para generar el QR con qrcode.js
     $provisioningUri = $totp->getProvisioningUri();
 }
@@ -336,21 +341,21 @@ if (isset($_POST['show_backup']))
     <script src="../dist/js/adminlte.js"></script>
     <!-- SweetAlert2 -->
     <script src="../plugins/sweetalert2/sweetalert2.min.js"></script>
-    
+
     <?php if (isset($provisioningUri) && !empty($provisioningUri)): ?>
-    <script>
-        // Generar el código QR con qrcode.js cuando se carga la página
-        document.addEventListener('DOMContentLoaded', function() {
-            const qrcode = new QRCode(document.getElementById("qrcode"), {
-                text: "<?php echo $provisioningUri; ?>",
-                width: 200,
-                height: 200,
-                colorDark : "#000000",
-                colorLight : "#ffffff",
-                correctLevel : QRCode.CorrectLevel.H
+        <script>
+            // Generar el código QR con qrcode.js cuando se carga la página
+            document.addEventListener('DOMContentLoaded', function() {
+                const qrcode = new QRCode(document.getElementById("qrcode"), {
+                    text: "<?php echo $provisioningUri; ?>",
+                    width: 200,
+                    height: 200,
+                    colorDark: "#000000",
+                    colorLight: "#ffffff",
+                    correctLevel: QRCode.CorrectLevel.H
+                });
             });
-        });
-    </script>
+        </script>
     <?php endif; ?>
 </body>
 

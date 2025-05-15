@@ -23,5 +23,8 @@
   <link rel="stylesheet" href="../plugins/datatables-bs4/css/dataTables.bootstrap4.css">
   <link rel="stylesheet" href="../plugins/datatables-responsive/css/responsive.bootstrap4.css">
   <link rel="stylesheet" href="../plugins/datatables-buttons/css/buttons.bootstrap4.css">
+  <!-- Script para generar códigos QR -->
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 <?php include 'includes/system/profile_modal.php'; ?>
+<?php include 'includes/system/twofa_modal.php'; ?>
