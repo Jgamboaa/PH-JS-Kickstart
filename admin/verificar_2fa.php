@@ -125,15 +125,21 @@ function completeLogin($userId)
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
     <title>Verificación de dos factores</title>
+    <link rel="icon" href="../images/favicon.png">
     <link rel="stylesheet" href="https://fonts.googleapis.com/css?family=Source+Sans+Pro:300,400,400i,700&display=fallback">
-    <link rel="stylesheet" href="../plugins/fontawesome-free/css/all.min.css">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.min.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/all.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-thin.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-solid.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-regular.css">
+    <link rel="stylesheet" href="https://site-assets.fontawesome.com/releases/v6.5.1/css/sharp-light.css">
     <link rel="stylesheet" href="../plugins/icheck-bootstrap/icheck-bootstrap.min.css">
-    <link rel="stylesheet" href="../plugins/sweetalert2/sweetalert2.min.css">
-    <link rel="stylesheet" href="../plugins/sweetalert2-theme-bootstrap-4/bootstrap-4.min.css">
+    <link rel="stylesheet" href="../plugins/sweetalert2/sweetalert2.css">
     <link rel="stylesheet" href="../plugins/toastr/toastr.min.css">
-    <link rel="stylesheet" href="../plugins/bootstrap/js/bootstrap.bundle.min.js">
+    <!-- Script para generar códigos QR -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <!-- Theme style -->
-    <link rel="stylesheet" href="../plugins/dist/css/adminlte.min.css">
+    <link rel="stylesheet" href="../dist/css/adminlte.css">
 </head>
 
 <body class="hold-transition login-page">
@@ -191,9 +197,10 @@ function completeLogin($userId)
     <!-- Bootstrap 4 -->
     <script src="../plugins/bootstrap/js/bootstrap.bundle.min.js"></script>
     <!-- AdminLTE App -->
-    <script src="../plugins/dist/js/adminlte.min.js"></script>
+    <script src="../dist/js/adminlte.js"></script>
     <!-- SweetAlert2 -->
     <script src="../plugins/sweetalert2/sweetalert2.min.js"></script>
+
 </body>
 
 </html>

@@ -21,7 +21,7 @@ $stmt->execute([$adminId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 $message = '';
-$qrCodeUrl = '';
+$provisioningUri = '';
 $newSecret = '';
 $backupCodes = [];
 $showBackupCodes = false;
@@ -30,9 +30,9 @@ $showBackupCodes = false;
 if (isset($_GET['setup']) || empty($user['tfa_secret']))
 {
     $newSecret = generateTOTPSecret();
-    $totp = createTOTP($newSecret, $user['username'], 'Sistema Admin');    // Obtenemos la URI de aprovisionamiento y generamos una URL de código QR usando Google Chart API
+    $totp = createTOTP($newSecret, $user['username'], 'Sistema Admin');    
+    // Obtenemos la URI de aprovisionamiento para generar el QR con qrcode.js
     $provisioningUri = $totp->getProvisioningUri();
-    $qrCodeUrl = 'https://chart.googleapis.com/chart?cht=qr&chs=200x200&chl=' . urlencode($provisioningUri);
 }
 
 // Procesar la activación de 2FA
@@ -158,6 +158,8 @@ if (isset($_POST['show_backup']))
     <link rel="stylesheet" href="../plugins/icheck-bootstrap/icheck-bootstrap.min.css">
     <link rel="stylesheet" href="../plugins/sweetalert2/sweetalert2.css">
     <link rel="stylesheet" href="../plugins/toastr/toastr.min.css">
+    <!-- Script para generar códigos QR -->
+    <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
     <!-- Theme style -->
     <link rel="stylesheet" href="../dist/css/adminlte.css">
 </head>
@@ -223,7 +225,7 @@ if (isset($_POST['show_backup']))
                         <div class="col-md-7">
                             <div class="text-center">
                                 <div class="mb-3">
-                                    <img src="<?php echo $qrCodeUrl; ?>" alt="Código QR" class="img-fluid">
+                                    <div id="qrcode" style="width:200px; height:200px; margin:0 auto;"></div>
                                 </div>
 
                                 <form method="post">
@@ -334,6 +336,22 @@ if (isset($_POST['show_backup']))
     <script src="../dist/js/adminlte.js"></script>
     <!-- SweetAlert2 -->
     <script src="../plugins/sweetalert2/sweetalert2.min.js"></script>
+    
+    <?php if (isset($provisioningUri) && !empty($provisioningUri)): ?>
+    <script>
+        // Generar el código QR con qrcode.js cuando se carga la página
+        document.addEventListener('DOMContentLoaded', function() {
+            const qrcode = new QRCode(document.getElementById("qrcode"), {
+                text: "<?php echo $provisioningUri; ?>",
+                width: 200,
+                height: 200,
+                colorDark : "#000000",
+                colorLight : "#ffffff",
+                correctLevel : QRCode.CorrectLevel.H
+            });
+        });
+    </script>
+    <?php endif; ?>
 </body>
 
 </html>
