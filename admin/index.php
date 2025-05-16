@@ -226,7 +226,6 @@ $csrf_token = generateCSRFToken();
                       </div>
                     </div>
                     <div class="modal-footer">
-                      <button type="button" class="btn btn-primary" id="copy-backup-codes">Copiar códigos</button>
                       <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continuar</button>
                     </div>
                   </div>
@@ -553,29 +552,6 @@ $csrf_token = generateCSRFToken();
               text: 'Error de conexión al verificar el código'
             });
           }
-        });
-      });
-
-      // NUEVO: Copiar códigos de respaldo
-      $('#copy-backup-codes').on('click', function() {
-        var codes = [];
-        $('#backup-codes-list li').each(function() {
-          codes.push($(this).text());
-        });
-
-        var codesText = codes.join('\n');
-        var $temp = $('<textarea>');
-        $('body').append($temp);
-        $temp.val(codesText).select();
-        document.execCommand('copy');
-        $temp.remove();
-
-        Swal.fire({
-          icon: 'success',
-          title: 'Copiado',
-          text: 'Códigos copiados al portapapeles',
-          timer: 1500,
-          showConfirmButton: false
         });
       });
 
