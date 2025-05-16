@@ -503,6 +503,7 @@ $csrf_token = generateCSRFToken();
                   $('#backup-codes-list').append('<li>' + code + '</li>');
                 });
 
+                // Mostrar modal con código de confirmación para evitar que el sistema muestre mensaje de error
                 var backupModal = new bootstrap.Modal(document.getElementById('backup-codes-modal'));
                 backupModal.show();
 
@@ -524,15 +525,25 @@ $csrf_token = generateCSRFToken();
               }
             } else {
               $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+
+              // Mostrar información de depuración si existe
+              let errorMessage = response.message || 'Error al verificar el código';
+              if (response.debug) {
+                console.error('Error de depuración:', response.debug);
+              }
+
               Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: response.message || 'Error al verificar el código'
+                text: errorMessage
               });
             }
           },
-          error: function() {
+          error: function(xhr, status, error) {
             $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+
+            console.error('Error AJAX:', status, error, xhr.responseText);
+
             Swal.fire({
               icon: 'error',
               title: 'Error',
@@ -831,6 +842,7 @@ $csrf_token = generateCSRFToken();
                   $('#backup-codes-list').append('<li>' + code + '</li>');
                 });
 
+                // Mostrar modal con código de confirmación para evitar que el sistema muestre mensaje de error
                 var backupModal = new bootstrap.Modal(document.getElementById('backup-codes-modal'));
                 backupModal.show();
 
@@ -852,15 +864,25 @@ $csrf_token = generateCSRFToken();
               }
             } else {
               $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+
+              // Mostrar información de depuración si existe
+              let errorMessage = response.message || 'Error al verificar el código';
+              if (response.debug) {
+                console.error('Error de depuración:', response.debug);
+              }
+
               Swal.fire({
                 icon: 'error',
                 title: 'Error',
-                text: response.message || 'Error al verificar el código'
+                text: errorMessage
               });
             }
           },
-          error: function() {
+          error: function(xhr, status, error) {
             $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+
+            console.error('Error AJAX:', status, error, xhr.responseText);
+
             Swal.fire({
               icon: 'error',
               title: 'Error',

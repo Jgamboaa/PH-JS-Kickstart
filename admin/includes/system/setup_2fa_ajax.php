@@ -1,59 +1,75 @@
 <?php
-require_once '../session_config.php';
-require_once dirname(__DIR__, 3) . '/config/db_conn.php';
-require_once '../functions/2fa_functions.php';
-$nombre_sistema = env('APP_NAME');
+require_once dirname(dirname(__DIR__)) . '/includes/session_config.php';
+require_once dirname(dirname(dirname(__DIR__))) . '/config/db_conn.php';
+require_once dirname(dirname(__DIR__)) . '/includes/functions/2fa_functions.php';
 
-// Verificar si hay una sesión pendiente de configuración 2FA
-if (!isset($_SESSION['setup_2fa_pending']) || !isset($_SESSION['setup_2fa_user_id']))
+header('Content-Type: application/json');
+$response = ['status' => false, 'message' => ''];
+
+// Verificar token CSRF
+if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token'])
 {
-    echo json_encode(['status' => false, 'message' => 'No autorizado']);
+    $response['message'] = 'Error de seguridad: token CSRF inválido';
+    echo json_encode($response);
     exit();
 }
 
-$action = $_POST['action'] ?? 'get_qrcode';
-
-switch ($action)
+if (isset($_POST['action']))
 {
-    case 'get_qrcode':
-        $userId = $_SESSION['setup_2fa_user_id'];
-        $username = $_SESSION['setup_2fa_username'] ?? '';
+    switch ($_POST['action'])
+    {
+        case 'get_qrcode':
+            // Generar un nuevo secreto temporal y almacenarlo en la sesión
+            $secret = generateTOTPSecret();
+            $_SESSION['temp_tfa_secret'] = $secret;
 
-        // Obtener información del usuario si no tenemos el username
-        if (empty($username))
-        {
-            $sql = "SELECT username FROM admin WHERE id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$userId]);
-            $result = $stmt->fetch(PDO::FETCH_ASSOC);
-            $username = $result['username'] ?? '';
-        }
+            // Determinar el nombre de usuario a usar
+            $username = isset($_SESSION['setup_2fa_username'])
+                ? $_SESSION['setup_2fa_username']
+                : (isset($_SESSION['username']) ? $_SESSION['username'] : 'usuario');
 
-        // Generar un nuevo secreto para 2FA
-        $newSecret = generateTOTPSecret();
-        $totp = createTOTP($newSecret, $username, $nombre_sistema);
-        $provisioningUri = $totp->getProvisioningUri();
+            // Crear objeto TOTP
+            $totp = createTOTP($secret, $username, 'Sistema Admin');
+            $provisioningUri = $totp->getProvisioningUri();
 
-        // Guardar el secreto en la sesión temporalmente
-        $_SESSION['temp_tfa_secret'] = $newSecret;
+            $response = [
+                'status' => true,
+                'secret' => $secret,
+                'qr_uri' => $provisioningUri
+            ];
+            break;
 
-        echo json_encode([
-            'status' => true,
-            'qr_uri' => $provisioningUri,
-            'secret' => $newSecret
-        ]);
-        break;
+        case 'cancel_setup':
+            // Limpiar variables de sesión relacionadas con la configuración 2FA
+            unset($_SESSION['temp_tfa_secret']);
+            unset($_SESSION['setup_2fa_pending']);
+            unset($_SESSION['setup_2fa_user_id']);
+            unset($_SESSION['setup_2fa_username']);
 
-    case 'cancel_setup':
-        // Limpiar datos de sesión relacionados con la configuración
-        unset($_SESSION['setup_2fa_pending']);
-        unset($_SESSION['setup_2fa_user_id']);
-        unset($_SESSION['setup_2fa_username']);
-        unset($_SESSION['temp_tfa_secret']);
+            $response['status'] = true;
+            $response['message'] = 'Configuración cancelada';
+            break;
 
-        echo json_encode(['status' => true, 'message' => 'Configuración cancelada']);
-        break;
+        case 'check_session_status':
+            // Devolver el estado actual de la sesión para depuración
+            $response['status'] = true;
+            $response['session_data'] = [
+                'setup_2fa_pending' => isset($_SESSION['setup_2fa_pending']) ? true : false,
+                'setup_2fa_user_id' => isset($_SESSION['setup_2fa_user_id']) ? $_SESSION['setup_2fa_user_id'] : null,
+                'temp_tfa_secret' => isset($_SESSION['temp_tfa_secret']) ? 'exists' : null,
+                'admin' => isset($_SESSION['admin']) ? $_SESSION['admin'] : null,
+            ];
+            break;
 
-    default:
-        echo json_encode(['status' => false, 'message' => 'Acción no válida']);
+        default:
+            $response['message'] = 'Acción desconocida';
+            break;
+    }
 }
+else
+{
+    $response['message'] = 'Ninguna acción especificada';
+}
+
+echo json_encode($response);
+exit();
