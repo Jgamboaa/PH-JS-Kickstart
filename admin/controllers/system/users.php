@@ -241,7 +241,7 @@ class UserController
     {
         try
         {
-            $sql = "SELECT * FROM admin WHERE id = :id";
+            $sql = "SELECT *, tfa_enabled, tfa_required FROM admin WHERE id = :id";
             $stmt = $this->conn->prepare($sql);
             $stmt->bindParam(':id', $id);
             $stmt->execute();
@@ -293,17 +293,42 @@ class UserController
                     </button>
                 ';
 
+                // Añadir botones para gestionar 2FA
+                if ($current_user_id != $row['id'])
+                { // No mostrar para el usuario actual
+                    $acciones .= '
+                        <button class="btn btn-sm btn-info reset-2fa" data-id="' . $row['id'] . '" title="Restablecer 2FA">
+                            <i class="fa-duotone fa-solid fa-shield-check fa-lg"></i>
+                        </button>
+                        <button class="btn btn-sm btn-warning new-backup-codes" data-id="' . $row['id'] . '" title="Generar códigos de respaldo">
+                            <i class="fa-duotone fa-solid fa-key fa-lg"></i>
+                        </button>
+                    ';
+                }
+
                 $ultimo_login = !empty($row['last_login']) ?
                     date('d/m/Y - h:i:s A', strtotime($row['last_login'])) : 'No disponible';
 
                 // Procesar roles
                 $roles_mostrados = $this->formatUserRoles($row['roles_ids'], $roles_map);
 
+                // Estado MFA
+                $mfa_status = $row['tfa_enabled'] ?
+                    '<span class="badge badge-success">Activado</span>' :
+                    '<span class="badge badge-danger">Desactivado</span>';
+
+                // MFA Requerido
+                $mfa_required = $row['tfa_required'] ?
+                    '<span class="badge badge-primary">Obligatorio</span>' :
+                    '<span class="badge badge-secondary">Opcional</span>';
+
                 $data[] = [
                     'foto' => '<img src="' . $photoSrc . '" class="img-circle" width="40px" height="40px" loading="lazy">',
                     'nombre' => $row['user_firstname'] . ' ' . $row['user_lastname'],
                     'correo' => $row['username'],
                     'roles' => $roles_mostrados,
+                    'mfa_status' => $mfa_status,
+                    'mfa_required' => $mfa_required,
                     'ultimo_login' => $ultimo_login,
                     'acciones' => $acciones
                 ];
@@ -385,5 +410,91 @@ class UserController
         move_uploaded_file($files['photo']['tmp_name'], '../../../images/admins/' . $new_filename);
 
         return $new_filename;
+    }
+
+    // Nuevos métodos para gestionar 2FA
+
+    /**
+     * Actualiza si el 2FA es requerido para un usuario
+     * @param int $userId ID del usuario
+     * @param bool $required Si el 2FA es requerido (1) o no (0)
+     * @return array Resultado de la operación
+     */
+    public function updateMFARequired($userId, $required)
+    {
+        try
+        {
+            $sql = "UPDATE admin SET tfa_required = ? WHERE id = ?";
+            $stmt = $this->conn->prepare($sql);
+            if ($stmt->execute([(int)$required, $userId]))
+            {
+                return [
+                    'status' => true,
+                    'message' => 'Estado de 2FA requerido actualizado correctamente',
+                    'required' => (int)$required
+                ];
+            }
+            return ['status' => false, 'message' => 'Error al actualizar el estado de 2FA requerido'];
+        }
+        catch (PDOException $e)
+        {
+            return ['status' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Restablece el MFA para un usuario
+     * @param int $userId ID del usuario
+     * @return array Resultado de la operación
+     */
+    public function resetMFA($userId)
+    {
+        try
+        {
+            $sql = "UPDATE admin SET tfa_enabled = 0, tfa_secret = NULL, tfa_backup_codes = NULL WHERE id = ?";
+            $stmt = $this->conn->prepare($sql);
+            if ($stmt->execute([$userId]))
+            {
+                return ['status' => true, 'message' => 'MFA restablecido correctamente'];
+            }
+            return ['status' => false, 'message' => 'Error al restablecer el MFA'];
+        }
+        catch (PDOException $e)
+        {
+            return ['status' => false, 'message' => $e->getMessage()];
+        }
+    }
+
+    /**
+     * Genera nuevos códigos de respaldo para un usuario
+     * @param int $userId ID del usuario
+     * @return array Resultado de la operación con los nuevos códigos generados
+     */
+    public function generateNewBackupCodes($userId)
+    {
+        try
+        {
+            require_once dirname(__DIR__, 2) . '/includes/functions/2fa_functions.php';
+
+            // Generar nuevos códigos
+            $backupCodes = generateBackupCodes();
+
+            // Guardar los nuevos códigos
+            $sql = "UPDATE admin SET tfa_backup_codes = ? WHERE id = ?";
+            $stmt = $this->conn->prepare($sql);
+            if ($stmt->execute([json_encode($backupCodes), $userId]))
+            {
+                return [
+                    'status' => true,
+                    'message' => 'Códigos de respaldo generados correctamente',
+                    'backup_codes' => $backupCodes
+                ];
+            }
+            return ['status' => false, 'message' => 'Error al generar códigos de respaldo'];
+        }
+        catch (Exception $e)
+        {
+            return ['status' => false, 'message' => $e->getMessage()];
+        }
     }
 }

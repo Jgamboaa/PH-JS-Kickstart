@@ -22,6 +22,14 @@
                     data: 'roles'
                 },
                 {
+                    data: 'mfa_status',
+                    className: 'text-center'
+                },
+                {
+                    data: 'mfa_required',
+                    className: 'text-center'
+                },
+                {
                     data: 'ultimo_login',
                     className: 'text-center'
                 },
@@ -60,6 +68,9 @@
             $('#admin_modal_label').text('Editar Usuario');
             $('#admin_id').val(id);
 
+            // Mostrar sección MFA en edición y ocultar en creación
+            $('#mfa_section').removeClass('d-none');
+
             $.ajax({
                 type: 'POST',
                 url: 'includes/system/users.php',
@@ -76,6 +87,17 @@
                     $('#lastname').val(response.user_lastname);
                     $('#roles_ids').val(response.roles_ids.split(','));
                     $('#gender').val(response.admin_gender);
+
+                    // Configuración MFA
+                    $('#tfa_required').val(response.tfa_required);
+
+                    // Mostrar estado actual de MFA
+                    if (response.tfa_enabled == 1) {
+                        $('#mfa_status_badge').removeClass('badge-danger').addClass('badge-success').text('Activado');
+                    } else {
+                        $('#mfa_status_badge').removeClass('badge-success').addClass('badge-danger').text('Desactivado');
+                    }
+
                     if (response.photo) {
                         var photoPath = '../images/admins/' + response.photo;
                         $('#admin_modal img').attr('src', photoPath);
@@ -95,6 +117,11 @@
                     console.log('Respuesta del servidor:', jqXHR.responseText);
                 }
             });
+        });
+
+        // Al abrir modal para nuevo usuario, ocultar sección MFA
+        $('#addnew').on('click', function() {
+            $('#mfa_section').addClass('d-none');
         });
 
         $('#admin_form').on('submit', function(e) {
@@ -253,6 +280,240 @@
                             });
                         }
                     });
+                }
+            });
+        });
+
+        // Manejo para restablecer el MFA de un usuario
+        $('#admins').on('click', '.reset-2fa', function() {
+            var id = $(this).data('id');
+
+            Swal.fire({
+                title: '¿Restablecer MFA?',
+                text: 'Se desactivará la autenticación de dos factores para este usuario y se eliminarán sus códigos de respaldo. El usuario necesitará configurar MFA nuevamente.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, restablecer',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: 'includes/system/users.php',
+                        data: {
+                            crud: 'reset_mfa',
+                            id: id
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            Swal.fire(response.message, '', response.status ? 'success' : 'error');
+                            $('#admins').DataTable().ajax.reload(null, false);
+                        }
+                    });
+                }
+            });
+        });
+
+        // Manejo para generar nuevos códigos de respaldo
+        $('#admins').on('click', '.new-backup-codes', function() {
+            var id = $(this).data('id');
+
+            Swal.fire({
+                title: '¿Generar nuevos códigos?',
+                text: 'Se generarán nuevos códigos de respaldo para este usuario. Los códigos anteriores dejarán de funcionar.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, generar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: 'includes/system/users.php',
+                        data: {
+                            crud: 'generate_backup_codes',
+                            id: id
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.status) {
+                                // Mostrar los códigos generados
+                                $('#backup_codes_list').empty();
+                                $.each(response.backup_codes, function(index, code) {
+                                    $('#backup_codes_list').append('<li>' + code + '</li>');
+                                });
+                                $('#backup_codes_modal').modal('show');
+                            } else {
+                                Swal.fire(response.message, '', 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        // Copiar códigos de respaldo al portapapeles
+        $('#copy_backup_codes').on('click', function() {
+            var codes = [];
+            $('#backup_codes_list li').each(function() {
+                codes.push($(this).text());
+            });
+
+            var codesText = codes.join('\n');
+
+            // Crear un elemento de texto temporal
+            var $temp = $('<textarea>');
+            $('body').append($temp);
+            $temp.val(codesText).select();
+
+            // Copiar al portapapeles
+            document.execCommand('copy');
+            $temp.remove();
+
+            // Notificar al usuario
+            Swal.fire({
+                title: 'Copiado',
+                text: 'Códigos copiados al portapapeles',
+                icon: 'success',
+                timer: 1500,
+                showConfirmButton: false
+            });
+        });
+
+        // Cambiar el estado de MFA requerido
+        $('#admins').on('click', '.mfa-required-badge', function() {
+            var id = $(this).data('id');
+            var currentRequired = $(this).data('required');
+            var newRequired = currentRequired ? 0 : 1;
+            var actionText = newRequired ? 'hacer obligatorio' : 'hacer opcional';
+
+            Swal.fire({
+                title: '¿Cambiar MFA requerido?',
+                text: '¿Está seguro que desea ' + actionText + ' el MFA para este usuario?',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, cambiar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: 'includes/system/users.php',
+                        data: {
+                            crud: 'update_mfa_required',
+                            id: id,
+                            required: newRequired
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            Swal.fire(response.message, '', response.status ? 'success' : 'error');
+                            $('#admins').DataTable().ajax.reload(null, false);
+                        }
+                    });
+                }
+            });
+        });
+
+        // Eventos para botones de 2FA dentro del modal
+        $('#btn_reset_mfa').on('click', function(e) {
+            e.preventDefault();
+            var userId = $('#admin_id').val();
+
+            Swal.fire({
+                title: '¿Restablecer MFA?',
+                text: 'Se desactivará la autenticación de dos factores para este usuario y se eliminarán sus códigos de respaldo.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, restablecer',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: 'includes/system/users.php',
+                        data: {
+                            crud: 'reset_mfa',
+                            id: userId
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.status) {
+                                // Actualizar el badge de estado
+                                $('#mfa_status_badge').removeClass('badge-success').addClass('badge-danger').text('Desactivado');
+                                Swal.fire('¡Éxito!', response.message, 'success');
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        $('#btn_generate_codes').on('click', function(e) {
+            e.preventDefault();
+            var userId = $('#admin_id').val();
+
+            Swal.fire({
+                title: '¿Generar nuevos códigos?',
+                text: 'Se generarán nuevos códigos de respaldo para este usuario. Los códigos anteriores dejarán de funcionar.',
+                icon: 'question',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, generar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    $.ajax({
+                        type: 'POST',
+                        url: 'includes/system/users.php',
+                        data: {
+                            crud: 'generate_backup_codes',
+                            id: userId
+                        },
+                        dataType: 'json',
+                        success: function(response) {
+                            if (response.status) {
+                                // Mostrar los códigos generados
+                                $('#backup_codes_list').empty();
+                                $.each(response.backup_codes, function(index, code) {
+                                    $('#backup_codes_list').append('<li>' + code + '</li>');
+                                });
+                                $('#backup_codes_modal').modal('show');
+                            } else {
+                                Swal.fire('Error', response.message, 'error');
+                            }
+                        }
+                    });
+                }
+            });
+        });
+
+        // Actualizar el estado de "MFA requerido" desde el modal
+        $('#tfa_required').on('change', function() {
+            var userId = $('#admin_id').val();
+            var newRequired = $(this).val();
+
+            $.ajax({
+                type: 'POST',
+                url: 'includes/system/users.php',
+                data: {
+                    crud: 'update_mfa_required',
+                    id: userId,
+                    required: newRequired
+                },
+                dataType: 'json',
+                success: function(response) {
+                    if (response.status) {
+                        Swal.fire({
+                            title: '¡Actualizado!',
+                            text: response.message,
+                            icon: 'success',
+                            timer: 1500,
+                            showConfirmButton: false
+                        });
+                    } else {
+                        Swal.fire('Error', response.message, 'error');
+                    }
                 }
             });
         });

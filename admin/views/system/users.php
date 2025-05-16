@@ -31,6 +31,8 @@ else
                         <th>Nombre</th>
                         <th>Correo</th>
                         <th>Roles</th>
+                        <th>MFA Estado</th>
+                        <th>MFA Requerido</th>
                         <th>Última conexión</th>
                         <th>Acciones</th>
                     </thead>
@@ -122,6 +124,47 @@ else
                                 ?>
                             </select>
                         </div>
+
+                        <!-- Nueva sección para configuración de 2FA - Solo visible en edición -->
+                        <div id="mfa_section" class="d-none">
+                            <hr>
+                            <h5>Configuración de Autenticación de Dos Factores (2FA)</h5>
+
+                            <div class="row mt-3">
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label for="tfa_required">2FA requerido</label>
+                                        <select class="form-control" id="tfa_required" name="tfa_required">
+                                            <option value="0">Opcional</option>
+                                            <option value="1">Obligatorio</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="form-group">
+                                        <label>Estado actual de 2FA</label>
+                                        <div class="mt-2">
+                                            <span id="mfa_status_badge" class="badge badge-pill"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-info btn-sm btn-block" id="btn_reset_mfa">
+                                        <i class="fa-duotone fa-solid fa-shield-check"></i> Restablecer 2FA
+                                    </button>
+                                    <small class="text-muted">Desactiva 2FA y elimina configuración actual</small>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-warning btn-sm btn-block" id="btn_generate_codes">
+                                        <i class="fa-duotone fa-solid fa-key"></i> Generar códigos de respaldo
+                                    </button>
+                                    <small class="text-muted">Crea nuevos códigos de respaldo para el usuario</small>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                     <div class="modal-footer justify-content-between">
                         <button type="button" class="btn btn-sm btn-default" data-dismiss="modal"><i class="fa fa-times"></i>
@@ -130,6 +173,30 @@ else
                     </div>
                 </div>
             </form>
+        </div>
+    </div>
+
+    <!-- Modal para mostrar códigos de respaldo -->
+    <div class="modal fade" id="backup_codes_modal">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <b class="modal-title">Códigos de respaldo</b>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <p>Guarde estos códigos de respaldo en un lugar seguro. Cada código se puede usar una sola vez:</p>
+                    <div class="alert alert-warning">
+                        <ul id="backup_codes_list" class="mb-0"></ul>
+                    </div>
+                </div>
+                <div class="modal-footer">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cerrar</button>
+                    <button type="button" class="btn btn-sm btn-primary" id="copy_backup_codes">Copiar códigos</button>
+                </div>
+            </div>
         </div>
     </div>
 <?php

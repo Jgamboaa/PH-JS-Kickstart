@@ -35,6 +35,22 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST')
 			echo json_encode($result);
 			break;
 
+		// Nuevos casos para 2FA
+		case 'reset_mfa':
+			$result = $userController->resetMFA($_POST['id']);
+			echo json_encode($result);
+			break;
+
+		case 'generate_backup_codes':
+			$result = $userController->generateNewBackupCodes($_POST['id']);
+			echo json_encode($result);
+			break;
+
+		case 'update_mfa_required':
+			$result = $userController->updateMFARequired($_POST['id'], $_POST['required']);
+			echo json_encode($result);
+			break;
+
 		default:
 			// Si no se especificó el parámetro crud, intentar procesar como actualización de perfil
 			if (isset($_POST['curr_password']))
