@@ -9,7 +9,7 @@ if (!file_exists(__DIR__ . '/../.env'))
 require_once 'includes/session_config.php';
 require_once 'includes/security_functions.php';
 require_once 'includes/functions/2fa_functions.php'; // Incluimos las funciones de 2FA
-require_once dirname(__DIR__) . '../config/env_reader.php';
+require_once dirname(__DIR__) . '/config/env_reader.php'; // Corrección de la ruta con barra separadora
 $APP_NAME = env('APP_NAME');
 
 if (isset($_SESSION['admin']))
@@ -89,7 +89,7 @@ $csrf_token = generateCSRFToken();
                   <p class="text-muted mb-4">Ingresa tu contraseña para acceder</p>
                 </div>
 
-                <form action="login.php" method="post" class="needs-validation" novalidate id="passwordLoginForm">
+                <form method="post" class="needs-validation" novalidate id="passwordLoginForm">
                   <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
                   <input type="hidden" name="login_password" value="1">
                   <input type="hidden" id="password-username" name="username">
@@ -598,6 +598,91 @@ $csrf_token = generateCSRFToken();
           $(this).html('<i class="fa-duotone fa-solid fa-eye-slash fa-lg"></i>');
           passwordField.attr('type', 'text');
         }
+      });
+
+      // AÑADIR: Manejar el envío del formulario de verificación 2FA
+      $('#tfa-form').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $button = $('#verify-tfa-button');
+        var code = $('#tfa-code').val().trim();
+
+        if (!code) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Por favor ingresa el código de verificación'
+          });
+          return;
+        }
+
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
+
+        $.ajax({
+          url: 'verify_2fa_ajax.php',
+          type: 'POST',
+          data: $form.serialize(),
+          dataType: 'json',
+          success: function(response) {
+            if (response.status) {
+              Swal.fire({
+                icon: 'success',
+                title: 'Éxito',
+                text: response.message || 'Verificación exitosa',
+                timer: 1500,
+                showConfirmButton: false
+              }).then(function() {
+                window.location.href = response.redirect_url || 'home.php';
+              });
+            } else {
+              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message || 'Error de verificación'
+              });
+            }
+          },
+          error: function() {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error de conexión'
+            });
+          }
+        });
+      });
+
+      // AÑADIR: Manejar el evento de cambio al modo de código de respaldo
+      $('#toggle-backup-code').on('click', function(e) {
+        e.preventDefault();
+        if ($('#tfa-backup-mode').val() === '0') {
+          $('#tfa-backup-mode').val('1');
+          $('#tfa-prompt-message').text('Ingresa un código de respaldo');
+          $('#tfa-code').attr('placeholder', 'Código de respaldo');
+          $(this).text('Volver al código de verificación');
+        } else {
+          $('#tfa-backup-mode').val('0');
+          $('#tfa-prompt-message').text('Ingresa el código de verificación');
+          $('#tfa-code').attr('placeholder', 'Código de 6 dígitos');
+          $(this).text('¿Problemas con tu autenticador? Usar código de respaldo');
+        }
+        $('#tfa-code').val('').focus();
+      });
+
+      // AÑADIR: Manejar botón de cambio de correo en la vista 2FA
+      $('#tfa-change-email-button').on('click', function() {
+        $('#tfa-verification-container').hide();
+        $('#email-check-container').show();
+        $('#emailaddress').val('').focus();
+      });
+
+      // AÑADIR: Manejar botón de cambio de correo en la vista de contraseña
+      $('#change-email-button').on('click', function() {
+        $('#password-login-container').hide();
+        $('#email-check-container').show();
+        $('#emailaddress').val('').focus();
       });
     });
   </script>

@@ -40,14 +40,6 @@ $code = trim($_POST['code']);
 $userId = (int)$_POST['user_id'];
 $useBackupCode = isset($_POST['backup_mode']) && $_POST['backup_mode'] == 1;
 
-// Verificar que el ID de usuario coincide con el guardado en la sesión o está recién iniciando
-if ((!isset($_SESSION['2fa_user_id']) || $_SESSION['2fa_user_id'] != $userId) &&
-    (!isset($_SESSION['2fa_pending']) || $_SESSION['2fa_pending'] !== true)
-)
-{
-    exit(json_encode(['status' => false, 'message' => 'Sesión inválida']));
-}
-
 // Si no hay código, error
 if (empty($code))
 {
@@ -55,7 +47,7 @@ if (empty($code))
 }
 
 // Obtener información del usuario
-$sql = "SELECT id, username, tfa_secret FROM admin WHERE id = ?";
+$sql = "SELECT id, username, tfa_secret, user_firstname, admin_gender, last_login FROM admin WHERE id = ?";
 $stmt = $conn->prepare($sql);
 $stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
@@ -103,10 +95,20 @@ if ($verification_success)
     $_SESSION['admin'] = $userId;
     $_SESSION['last_activity'] = time();
 
+    // Preparar mensaje de bienvenida
+    if (empty($user['last_login']))
+    {
+        $saludo_login = ($user['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+    }
+    else
+    {
+        $saludo_login = ($user['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+    }
+
     // Devolver éxito
     exit(json_encode([
         'status' => true,
-        'message' => 'Verificación exitosa',
+        'message' => $saludo_login . ' ' . $user['user_firstname'] . '!',
         'redirect_url' => 'home.php'
     ]));
 }
