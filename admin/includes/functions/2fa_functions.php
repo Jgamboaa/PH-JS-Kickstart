@@ -1,6 +1,4 @@
 <?php
-// filepath: c:\laragon\www\PH-JS-Kickstart\admin\includes\functions\2fa_functions.php
-
 require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 use OTPHP\TOTP;
