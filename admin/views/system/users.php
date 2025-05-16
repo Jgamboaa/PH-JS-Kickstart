@@ -17,7 +17,7 @@ else
             <div class="row mb-2">
                 <div class="col-sm-6">
                     <a id="addnew" class="btn btn-sm btn-primary"><i class="fa fa-duotone fa-solid fa-plus fa-lg"></i></a>
-                    <a class="btn btn-sm btn-warning"><i class="fa fa-duotone fa-solid fa-server fa-lg"></i></a>
+                    <a class="btn btn-sm btn-warning btn-backup"><i class="fa fa-duotone fa-solid fa-server fa-lg"></i></a>
                     <a class="btn btn-sm btn-info btn-email-backup"><i class="fa fa-duotone fa-solid fa-paper-plane-top fa-lg"></i></a>
                 </div>
             </div>

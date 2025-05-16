@@ -178,7 +178,7 @@
             });
         });
 
-        $('.btn-warning').click(function(e) {
+        $('.btn-backup').click(function(e) {
             e.preventDefault();
 
             Swal.fire({
@@ -488,36 +488,6 @@
                             }
                         }
                     });
-                }
-            });
-        });
-
-        // Actualizar el estado de "MFA requerido" desde el modal
-        $('#tfa_required').on('change', function() {
-            var userId = $('#admin_id').val();
-            var newRequired = $(this).val();
-
-            $.ajax({
-                type: 'POST',
-                url: 'includes/system/users.php',
-                data: {
-                    crud: 'update_mfa_required',
-                    id: userId,
-                    required: newRequired
-                },
-                dataType: 'json',
-                success: function(response) {
-                    if (response.status) {
-                        Swal.fire({
-                            title: '¡Actualizado!',
-                            text: response.message,
-                            icon: 'success',
-                            timer: 1500,
-                            showConfirmButton: false
-                        });
-                    } else {
-                        Swal.fire('Error', response.message, 'error');
-                    }
                 }
             });
         });
