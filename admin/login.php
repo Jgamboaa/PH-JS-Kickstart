@@ -38,8 +38,26 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 					session_regenerate_id(true);
 					logLoginActivity($username, true);
 
+					// NUEVO: Verificar si 2FA es requerido pero no está configurado
+					if ($row['tfa_required'] == 1 && $row['tfa_enabled'] == 0)
+					{
+						// El usuario debe configurar 2FA
+						$_SESSION['setup_2fa_pending'] = true;
+						$_SESSION['setup_2fa_user_id'] = $row['id'];
+						$_SESSION['setup_2fa_username'] = $username;
+
+						// Responder con JSON para activar la configuración 2FA
+						echo json_encode([
+							'status' => true,
+							'require_2fa_setup' => true,
+							'user_id' => $row['id'],
+							'username' => $username,
+							'message' => 'Es necesario configurar la autenticación de dos factores para continuar'
+						]);
+						exit();
+					}
 					// Verificar si el usuario tiene 2FA activado
-					if ($row['tfa_enabled'] == 1)
+					else if ($row['tfa_enabled'] == 1)
 					{
 						// Configurar sesión para verificación 2FA
 						$_SESSION['2fa_pending'] = true;
@@ -93,6 +111,83 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 	{
 		$response['message'] = 'Cuenta bloqueada temporalmente. Por favor contacta soporte';
 		$response['blocked'] = true;
+	}
+}
+// NUEVO: Procesar solicitud de configuración de 2FA
+else if (isset($_POST['setup_2fa_submit']) && isset($_POST['csrf_token']) && $_POST['csrf_token'] === $_SESSION['csrf_token'])
+{
+	$user_id = (int)$_POST['user_id'];
+	$otp_code = trim($_POST['otp_code']);
+
+	// Verificar que hay una sesión de configuración pendiente
+	if (!isset($_SESSION['setup_2fa_pending']) || !isset($_SESSION['setup_2fa_user_id']) || $_SESSION['setup_2fa_user_id'] != $user_id)
+	{
+		$response['message'] = 'Sesión inválida';
+		echo json_encode($response);
+		exit();
+	}
+
+	// Verificar que el secreto temporal existe
+	if (!isset($_SESSION['temp_tfa_secret']))
+	{
+		$response['message'] = 'No se encontró un secreto temporal. Por favor reinicia el proceso.';
+		echo json_encode($response);
+		exit();
+	}
+
+	// Verificar el código OTP
+	require_once 'includes/functions/2fa_functions.php';
+	if (verifyOTP($_SESSION['temp_tfa_secret'], $otp_code))
+	{
+		// Generar códigos de respaldo
+		$backupCodes = generateBackupCodes();
+
+		// Guardar el secreto y activar 2FA
+		$sql = "UPDATE admin SET tfa_secret = ?, tfa_enabled = 1, tfa_backup_codes = ? WHERE id = ?";
+		$stmt = $conn->prepare($sql);
+		$stmt->execute([$_SESSION['temp_tfa_secret'], json_encode($backupCodes), $user_id]);
+
+		// Limpiar variables de sesión temporales
+		unset($_SESSION['temp_tfa_secret']);
+		unset($_SESSION['setup_2fa_pending']);
+		unset($_SESSION['setup_2fa_user_id']);
+
+		// Establecer sesión normal
+		$_SESSION['admin'] = $user_id;
+		$_SESSION['last_activity'] = time();
+
+		// Obtener información del usuario para el mensaje de saludo
+		$sql = "SELECT user_firstname, admin_gender, last_login FROM admin WHERE id = ?";
+		$stmt = $conn->prepare($sql);
+		$stmt->execute([$user_id]);
+		$row = $stmt->fetch();
+
+		// Actualizar último login
+		$sql = "UPDATE admin SET last_login = NOW() WHERE id = ?";
+		$stmt = $conn->prepare($sql);
+		$stmt->execute([$user_id]);
+
+		// Mensaje de bienvenida
+		if (empty($row['last_login']))
+		{
+			$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+		}
+		else
+		{
+			$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+		}
+
+		$response = [
+			'status' => true,
+			'message' => $saludo_login . ' ' . $row['user_firstname'] . '!',
+			'redirect' => true,
+			'redirect_url' => 'home.php',
+			'backup_codes' => $backupCodes
+		];
+	}
+	else
+	{
+		$response['message'] = 'Código de verificación incorrecto. Inténtalo de nuevo.';
 	}
 }
 // Verificación de autenticación directa por 2FA

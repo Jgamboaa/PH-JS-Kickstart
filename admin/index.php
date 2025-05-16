@@ -32,6 +32,8 @@ $csrf_token = generateCSRFToken();
   <script src="../dist/js/config.js"></script>
   <link href="../dist/css/app.css" rel="stylesheet" type="text/css" id="app-style" />
   <link rel="stylesheet" href="../dist/css/icons.css">
+  <!-- Añadir script para QR -->
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 
 <body class="authentication-bg position-relative">
@@ -159,6 +161,75 @@ $csrf_token = generateCSRFToken();
                 <div class="mt-3 text-center">
                   <p><a href="#" id="toggle-backup-code">¿Problemas con tu autenticador? Usar código de respaldo</a></p>
                   <button type="button" class="btn btn-link" id="tfa-change-email-button">Cambiar correo</button>
+                </div>
+              </div>
+
+              <!-- NUEVO: Contenedor para configuración 2FA -->
+              <div id="setup-2fa-container" style="display: none;">
+                <div class="text-center w-75 m-auto">
+                  <h4 class="text-dark-50 text-center pb-0 fw-bold">Configuración de 2FA</h4>
+                  <p class="text-muted mb-4">Es necesario configurar la autenticación de dos factores para continuar</p>
+                </div>
+
+                <form id="setup-2fa-form" class="needs-validation" novalidate>
+                  <input type="hidden" name="csrf_token" value="<?php echo $csrf_token; ?>">
+                  <input type="hidden" name="setup_2fa_submit" value="1">
+                  <input type="hidden" id="setup-user-id" name="user_id" value="">
+
+                  <div class="mb-3">
+                    <p class="text-center">Por favor escanea este código QR con tu aplicación de autenticación:</p>
+                    <div id="qrcode-container" class="text-center mb-3"></div>
+
+                    <p class="text-center">O ingresa este código manualmente:</p>
+                    <div class="text-center mb-3">
+                      <code id="secret-key" class="p-2"></code>
+                    </div>
+                  </div>
+
+                  <div class="mb-3">
+                    <label for="otp-code" class="form-label">Código de verificación</label>
+                    <div class="input-group input-group-merge">
+                      <input type="text" id="otp-code" class="form-control" name="otp_code"
+                        placeholder="Ingresa el código de 6 dígitos" autocomplete="off" required>
+                      <div class="input-group-text">
+                        <i class="fa-duotone fa-solid fa-shield-alt fa-lg"></i>
+                      </div>
+                    </div>
+                    <div class="form-text">Introduce el código generado por la aplicación para verificar la configuración</div>
+                  </div>
+
+                  <div class="mb-3 text-center">
+                    <button type="submit" class="btn btn-secondary" id="verify-setup-button">
+                      <i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar
+                    </button>
+                  </div>
+                </form>
+
+                <div class="mt-3 text-center">
+                  <p>Aplicaciones recomendadas: Google Authenticator, Microsoft Authenticator, Authy</p>
+                  <button type="button" class="btn btn-link" id="cancel-setup-button">Cancelar</button>
+                </div>
+              </div>
+
+              <!-- NUEVO: Modal para mostrar códigos de respaldo tras la configuración -->
+              <div class="modal fade" id="backup-codes-modal" tabindex="-1" aria-labelledby="backup-codes-label" aria-hidden="true">
+                <div class="modal-dialog">
+                  <div class="modal-content">
+                    <div class="modal-header">
+                      <h5 class="modal-title" id="backup-codes-label">Códigos de respaldo</h5>
+                      <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                      <p>Guarde estos códigos de respaldo en un lugar seguro. Si pierde acceso a su aplicación de autenticación, puede usar uno de estos códigos para iniciar sesión.</p>
+                      <div class="alert alert-warning">
+                        <ul id="backup-codes-list" class="mb-0"></ul>
+                      </div>
+                    </div>
+                    <div class="modal-footer">
+                      <button type="button" class="btn btn-primary" id="copy-backup-codes">Copiar códigos</button>
+                      <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Continuar</button>
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -295,11 +366,23 @@ $csrf_token = generateCSRFToken();
           dataType: 'json',
           success: function(response) {
             if (response.status) {
-              if (response.require_2fa) {
+              if (response.require_2fa_setup) {
+                // NUEVO: Mostrar el formulario de configuración 2FA
+                $('#password-login-container').hide();
+                $('#setup-2fa-container').show();
+                $('#setup-user-id').val(response.user_id);
+
+                // Generar QR y secreto
+                generateSetup2FAQR(response.username || $('#display-email').text());
+
+                $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
+              } else if (response.require_2fa) {
                 // Mostrar formulario de verificación 2FA
                 $('#password-login-container').hide();
                 $('#tfa-verification-container').show();
                 $('#tfa-user-id').val(response.user_id);
+                $('#tfa-username').val($('#password-username').val());
+                $('#tfa-display-email').text($('#display-email').text());
                 $('#tfa-code').focus();
                 $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
               } else if (response.redirect) {
@@ -339,44 +422,310 @@ $csrf_token = generateCSRFToken();
         });
       });
 
-      // Manejar envío del formulario 2FA
-      $('#tfa-form').on('submit', function(e) {
+      // NUEVO: Función para generar QR y secreto para configuración 2FA
+      function generateSetup2FAQR(username) {
+        $.ajax({
+          url: 'includes/system/setup_2fa_ajax.php',
+          type: 'POST',
+          data: {
+            action: 'get_qrcode',
+            csrf_token: $('input[name="csrf_token"]').val()
+          },
+          dataType: 'json',
+          success: function(response) {
+            if (response.status) {
+              // Mostrar el secreto
+              $('#secret-key').text(response.secret);
+
+              // Generar el código QR
+              $('#qrcode-container').empty();
+              new QRCode(document.getElementById("qrcode-container"), {
+                text: response.qr_uri,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo generar el código QR: ' + (response.message || 'Error desconocido')
+              });
+            }
+          },
+          error: function() {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error de conexión al generar el código QR'
+            });
+          }
+        });
+      }
+
+      // NUEVO: Manejar el envío del formulario de configuración 2FA
+      $('#setup-2fa-form').on('submit', function(e) {
         e.preventDefault();
-        var $button = $('#verify-tfa-button');
-        var code = $('#tfa-code').val().trim();
+        var $form = $(this);
+        var $button = $('#verify-setup-button');
+        var code = $('#otp-code').val().trim();
 
         if (!code) {
           Swal.fire({
             icon: 'error',
             title: 'Error',
-            text: 'Por favor ingresa un código'
+            text: 'Por favor ingresa el código de verificación'
           });
           return;
         }
 
         $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
 
-        // Realizar verificación 2FA mediante AJAX
         $.ajax({
           url: 'login.php',
           type: 'POST',
-          data: $(this).serialize(),
+          data: $form.serialize(),
           dataType: 'json',
           success: function(response) {
             if (response.status) {
-              // Autenticación exitosa
-              Swal.fire({
-                icon: 'success',
-                title: 'Verificación exitosa',
-                text: response.message,
-                timer: 1500,
-                showConfirmButton: false
-              }).then(function() {
-                window.location.href = response.redirect_url || 'home.php';
-              });
+              // Mostrar los códigos de respaldo
+              if (response.backup_codes && response.backup_codes.length > 0) {
+                $('#backup-codes-list').empty();
+                $.each(response.backup_codes, function(i, code) {
+                  $('#backup-codes-list').append('<li>' + code + '</li>');
+                });
+
+                var backupModal = new bootstrap.Modal(document.getElementById('backup-codes-modal'));
+                backupModal.show();
+
+                // Al cerrar el modal, redirigir
+                $('#backup-codes-modal').on('hidden.bs.modal', function() {
+                  window.location.href = response.redirect_url || 'home.php';
+                });
+              } else {
+                // Si no hay códigos de respaldo, redirigir directamente
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Configuración completada',
+                  text: '2FA configurado correctamente.',
+                  timer: 1500,
+                  showConfirmButton: false
+                }).then(function() {
+                  window.location.href = response.redirect_url || 'home.php';
+                });
+              }
             } else {
-              // Error de verificación
-              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message || 'Error al verificar el código'
+              });
+            }
+          },
+          error: function() {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error de conexión al verificar el código'
+            });
+          }
+        });
+      });
+
+      // NUEVO: Copiar códigos de respaldo
+      $('#copy-backup-codes').on('click', function() {
+        var codes = [];
+        $('#backup-codes-list li').each(function() {
+          codes.push($(this).text());
+        });
+
+        var codesText = codes.join('\n');
+        var $temp = $('<textarea>');
+        $('body').append($temp);
+        $temp.val(codesText).select();
+        document.execCommand('copy');
+        $temp.remove();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Copiado',
+          text: 'Códigos copiados al portapapeles',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      });
+
+      // NUEVO: Cancelar configuración 2FA
+      $('#cancel-setup-button').on('click', function() {
+        Swal.fire({
+          title: '¿Cancelar configuración?',
+          text: 'La configuración de 2FA es obligatoria. Si cancelas, serás redirigido al inicio de sesión.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, cancelar',
+          cancelButtonText: 'No, continuar configurando'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            $.ajax({
+              url: 'includes/system/setup_2fa_ajax.php',
+              type: 'POST',
+              data: {
+                action: 'cancel_setup',
+                csrf_token: $('input[name="csrf_token"]').val()
+              },
+              dataType: 'json',
+              success: function() {
+                // Mostrar el formulario de verificación de correo
+                $('#setup-2fa-container').hide();
+                $('#email-check-container').show();
+              }
+            });
+          }
+        });
+      });
+
+      // Manejar el envío del formulario de verificación de correo electrónico
+      $('#emailCheckForm').on('submit', function(e) {
+        e.preventDefault();
+        const email = $('#emailaddress').val().trim();
+
+        if (!validateEmail(email)) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Por favor ingresa un correo electrónico válido'
+          });
+          return;
+        }
+
+        var $button = $('#checkEmailButton');
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
+
+        // Llamar al nuevo endpoint para verificar el tipo de autenticación
+        $.ajax({
+          url: 'check_user_auth_type.php',
+          type: 'POST',
+          data: {
+            username: email,
+            csrf_token: $('input[name="csrf_token"]').val()
+          },
+          dataType: 'json',
+          success: function(response) {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-arrow-right fa-lg me-1"></i> Continuar');
+
+            if (response.status) {
+              // Mostrar el formulario correspondiente según el tipo de autenticación
+              $('#email-check-container').hide();
+
+              if (response.auth_type === 'password') {
+                // Mostrar formulario de contraseña
+                $('#password-username').val(email);
+                $('#display-email').text(email);
+                $('#password-login-container').show();
+                $('#password').focus();
+              } else if (response.auth_type === '2fa') {
+                // Mostrar formulario 2FA
+                $('#tfa-user-id').val(response.user_id);
+                $('#tfa-username').val(email);
+                $('#tfa-display-email').text(email);
+                $('#tfa-verification-container').show();
+                $('#tfa-code').focus();
+              }
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message
+              });
+
+              if (response.blocked) {
+                $('#emailaddress').prop('disabled', true);
+                $button.prop('disabled', true);
+                setTimeout(function() {
+                  $('#emailaddress').prop('disabled', false);
+                  $button.prop('disabled', false);
+                }, 180000); // 3 minutos
+              }
+            }
+          },
+          error: function() {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-arrow-right fa-lg me-1"></i> Continuar');
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error en la conexión'
+            });
+          }
+        });
+      });
+
+      // Manejar el envío del formulario de contraseña
+      $('#passwordLoginForm').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $button = $('#loginButton');
+        var password = $('#password').val();
+
+        if (!validatePassword(password)) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'La contraseña debe tener al menos 6 caracteres'
+          });
+          return;
+        }
+
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Cargando...');
+
+        $.ajax({
+          url: 'login.php',
+          type: 'POST',
+          data: $form.serialize(),
+          dataType: 'json',
+          success: function(response) {
+            if (response.status) {
+              if (response.require_2fa_setup) {
+                // NUEVO: Mostrar el formulario de configuración 2FA
+                $('#password-login-container').hide();
+                $('#setup-2fa-container').show();
+                $('#setup-user-id').val(response.user_id);
+
+                // Generar QR y secreto
+                generateSetup2FAQR(response.username || $('#display-email').text());
+
+                $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
+              } else if (response.require_2fa) {
+                // Mostrar formulario de verificación 2FA
+                $('#password-login-container').hide();
+                $('#tfa-verification-container').show();
+                $('#tfa-user-id').val(response.user_id);
+                $('#tfa-username').val($('#password-username').val());
+                $('#tfa-display-email').text($('#display-email').text());
+                $('#tfa-code').focus();
+                $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
+              } else if (response.redirect) {
+                // Redirección normal
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Éxito',
+                  text: response.message,
+                  timer: 1500,
+                  showConfirmButton: false
+                }).then(function() {
+                  window.location.href = response.redirect_url || 'home.php';
+                });
+              }
+            } else {
+              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
+              if (response.blocked) {
+                setTimeout(function() {
+                  $button.prop('disabled', false);
+                }, 180000); // 3 minutos
+              }
               Swal.fire({
                 icon: 'error',
                 title: 'Error',
@@ -385,43 +734,180 @@ $csrf_token = generateCSRFToken();
             }
           },
           error: function() {
-            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar');
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
             Swal.fire({
               icon: 'error',
               title: 'Error',
-              text: 'Error en la conexión. Inténtalo de nuevo.'
+              text: 'Error en la conexión'
             });
           }
         });
       });
 
-      // Cambiar entre código normal y código de respaldo
-      $('#toggle-backup-code').on('click', function(e) {
-        e.preventDefault();
-        var useBackupMode = $('#tfa-backup-mode').val() === '0';
-        $('#tfa-backup-mode').val(useBackupMode ? '1' : '0');
+      // NUEVO: Función para generar QR y secreto para configuración 2FA
+      function generateSetup2FAQR(username) {
+        $.ajax({
+          url: 'includes/system/setup_2fa_ajax.php',
+          type: 'POST',
+          data: {
+            action: 'get_qrcode',
+            csrf_token: $('input[name="csrf_token"]').val()
+          },
+          dataType: 'json',
+          success: function(response) {
+            if (response.status) {
+              // Mostrar el secreto
+              $('#secret-key').text(response.secret);
 
-        if (useBackupMode) {
-          // Cambiar a modo de código de respaldo
-          $('#tfa-prompt-message').text('Ingresa un código de respaldo');
-          $('#tfa-code').attr('placeholder', 'Código de respaldo');
-          $(this).text('Usar código de aplicación en su lugar');
-        } else {
-          // Cambiar a modo de código normal
-          $('#tfa-prompt-message').text('Ingresa el código de verificación de tu aplicación de autenticación');
-          $('#tfa-code').attr('placeholder', 'Código de 6 dígitos');
-          $(this).text('¿Problemas con tu autenticador? Usar código de respaldo');
+              // Generar el código QR
+              $('#qrcode-container').empty();
+              new QRCode(document.getElementById("qrcode-container"), {
+                text: response.qr_uri,
+                width: 200,
+                height: 200,
+                colorDark: "#000000",
+                colorLight: "#ffffff",
+                correctLevel: QRCode.CorrectLevel.H
+              });
+            } else {
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: 'No se pudo generar el código QR: ' + (response.message || 'Error desconocido')
+              });
+            }
+          },
+          error: function() {
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error de conexión al generar el código QR'
+            });
+          }
+        });
+      }
+
+      // NUEVO: Manejar el envío del formulario de configuración 2FA
+      $('#setup-2fa-form').on('submit', function(e) {
+        e.preventDefault();
+        var $form = $(this);
+        var $button = $('#verify-setup-button');
+        var code = $('#otp-code').val().trim();
+
+        if (!code) {
+          Swal.fire({
+            icon: 'error',
+            title: 'Error',
+            text: 'Por favor ingresa el código de verificación'
+          });
+          return;
         }
 
-        $('#tfa-code').focus();
+        $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
+
+        $.ajax({
+          url: 'login.php',
+          type: 'POST',
+          data: $form.serialize(),
+          dataType: 'json',
+          success: function(response) {
+            if (response.status) {
+              // Mostrar los códigos de respaldo
+              if (response.backup_codes && response.backup_codes.length > 0) {
+                $('#backup-codes-list').empty();
+                $.each(response.backup_codes, function(i, code) {
+                  $('#backup-codes-list').append('<li>' + code + '</li>');
+                });
+
+                var backupModal = new bootstrap.Modal(document.getElementById('backup-codes-modal'));
+                backupModal.show();
+
+                // Al cerrar el modal, redirigir
+                $('#backup-codes-modal').on('hidden.bs.modal', function() {
+                  window.location.href = response.redirect_url || 'home.php';
+                });
+              } else {
+                // Si no hay códigos de respaldo, redirigir directamente
+                Swal.fire({
+                  icon: 'success',
+                  title: 'Configuración completada',
+                  text: '2FA configurado correctamente.',
+                  timer: 1500,
+                  showConfirmButton: false
+                }).then(function() {
+                  window.location.href = response.redirect_url || 'home.php';
+                });
+              }
+            } else {
+              $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+              Swal.fire({
+                icon: 'error',
+                title: 'Error',
+                text: response.message || 'Error al verificar el código'
+              });
+            }
+          },
+          error: function() {
+            $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-check fa-lg me-1"></i> Verificar y activar');
+            Swal.fire({
+              icon: 'error',
+              title: 'Error',
+              text: 'Error de conexión al verificar el código'
+            });
+          }
+        });
       });
 
-      // Botones para cambiar de correo
-      $('#change-email-button, #tfa-change-email-button').on('click', function() {
-        $('#email-check-container').show();
-        $('#password-login-container, #tfa-verification-container').hide();
-        $('#emailaddress').focus();
-        $('#tfa-form, #passwordLoginForm')[0].reset();
+      // NUEVO: Copiar códigos de respaldo
+      $('#copy-backup-codes').on('click', function() {
+        var codes = [];
+        $('#backup-codes-list li').each(function() {
+          codes.push($(this).text());
+        });
+
+        var codesText = codes.join('\n');
+        var $temp = $('<textarea>');
+        $('body').append($temp);
+        $temp.val(codesText).select();
+        document.execCommand('copy');
+        $temp.remove();
+
+        Swal.fire({
+          icon: 'success',
+          title: 'Copiado',
+          text: 'Códigos copiados al portapapeles',
+          timer: 1500,
+          showConfirmButton: false
+        });
+      });
+
+      // NUEVO: Cancelar configuración 2FA
+      $('#cancel-setup-button').on('click', function() {
+        Swal.fire({
+          title: '¿Cancelar configuración?',
+          text: 'La configuración de 2FA es obligatoria. Si cancelas, serás redirigido al inicio de sesión.',
+          icon: 'warning',
+          showCancelButton: true,
+          confirmButtonText: 'Sí, cancelar',
+          cancelButtonText: 'No, continuar configurando'
+        }).then((result) => {
+          if (result.isConfirmed) {
+            $.ajax({
+              url: 'includes/system/setup_2fa_ajax.php',
+              type: 'POST',
+              data: {
+                action: 'cancel_setup',
+                csrf_token: $('input[name="csrf_token"]').val()
+              },
+              dataType: 'json',
+              success: function() {
+                // Mostrar el formulario de verificación de correo
+                $('#setup-2fa-container').hide();
+                $('#email-check-container').show();
+              }
+            });
+          }
+        });
       });
 
       // Toggle de visibilidad para la contraseña
