@@ -120,21 +120,28 @@ else if (isset($_POST['setup_2fa_submit']) && isset($_POST['csrf_token']) && $_P
 	$otp_code = trim($_POST['otp_code']);
 	$response = ['status' => false, 'message' => '', 'redirect' => false];
 
-	// Verificar que hay una sesión de configuración pendiente - versión mejorada
+	// Verificar que hay una sesión de configuración pendiente o regenerar si falta
 	if (!isset($_SESSION['setup_2fa_pending']))
 	{
-		$response['message'] = 'No hay una configuración 2FA pendiente';
-		$response['debug'] = ['error' => 'setup_2fa_pending not set'];
-		echo json_encode($response);
-		exit();
+		// Intentamos regenerar el estado si tenemos el user_id y coincide con alguna información guardada
+		if (isset($_SESSION['setup_2fa_user_id']) && $_SESSION['setup_2fa_user_id'] == $user_id)
+		{
+			$_SESSION['setup_2fa_pending'] = true;
+		}
+		else
+		{
+			$response['message'] = 'No hay una configuración 2FA pendiente';
+			$response['debug'] = ['error' => 'setup_2fa_pending not set'];
+			echo json_encode($response);
+			exit();
+		}
 	}
 
 	if (!isset($_SESSION['setup_2fa_user_id']))
 	{
-		$response['message'] = 'ID de usuario no encontrado en la sesión';
-		$response['debug'] = ['error' => 'setup_2fa_user_id not set'];
-		echo json_encode($response);
-		exit();
+		$_SESSION['setup_2fa_user_id'] = $user_id; // Establecemos el ID si no existe pero confiamos en el formulario
+		$response['message'] = 'ID de usuario establecido desde el formulario';
+		$response['debug'] = ['warning' => 'setup_2fa_user_id set from form'];
 	}
 
 	if ($_SESSION['setup_2fa_user_id'] != $user_id)

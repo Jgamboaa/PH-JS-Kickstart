@@ -22,6 +22,11 @@ if (isset($_POST['action']) && $_POST['action'] === 'cancel')
     // Eliminar variables de sesión relacionadas con 2FA
     unset($_SESSION['2fa_pending']);
     unset($_SESSION['2fa_user_id']);
+    unset($_SESSION['setup_2fa_pending']); // También limpiamos otras variables relacionadas con 2FA
+    unset($_SESSION['setup_2fa_user_id']);
+    unset($_SESSION['setup_2fa_username']);
+    unset($_SESSION['temp_tfa_secret']);
+
     exit(json_encode(['status' => true, 'message' => 'Verificación cancelada']));
 }
 

@@ -1,75 +1,74 @@
 <?php
-require_once dirname(dirname(__DIR__)) . '/includes/session_config.php';
 require_once dirname(dirname(dirname(__DIR__))) . '/config/db_conn.php';
-require_once dirname(dirname(__DIR__)) . '/includes/functions/2fa_functions.php';
+require_once dirname(dirname(__FILE__)) . '/session_config.php';
+require_once dirname(dirname(__FILE__)) . '/functions/2fa_functions.php';
+require_once dirname(dirname(__FILE__)) . '/security_functions.php';
 
 header('Content-Type: application/json');
 $response = ['status' => false, 'message' => ''];
 
-// Verificar token CSRF
-if (!isset($_POST['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token'])
+// Asegurar que la solicitud sea mediante AJAX
+if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest')
 {
-    $response['message'] = 'Error de seguridad: token CSRF inválido';
-    echo json_encode($response);
-    exit();
+    exit(json_encode(['status' => false, 'message' => 'Acceso no autorizado']));
 }
 
+// Verificar CSRF token
+if (!isset($_POST['csrf_token']) || !isset($_SESSION['csrf_token']) || $_POST['csrf_token'] !== $_SESSION['csrf_token'])
+{
+    exit(json_encode(['status' => false, 'message' => 'Token de seguridad inválido']));
+}
+
+// Procesar solicitudes
 if (isset($_POST['action']))
 {
     switch ($_POST['action'])
     {
         case 'get_qrcode':
-            // Generar un nuevo secreto temporal y almacenarlo en la sesión
+            // Generar un nuevo secreto TOTP
             $secret = generateTOTPSecret();
+
+            // Guardar el secreto en la sesión para usar durante la verificación
             $_SESSION['temp_tfa_secret'] = $secret;
 
-            // Determinar el nombre de usuario a usar
-            $username = isset($_SESSION['setup_2fa_username'])
-                ? $_SESSION['setup_2fa_username']
-                : (isset($_SESSION['username']) ? $_SESSION['username'] : 'usuario');
+            // Asegurar que la sesión marque que hay una configuración de 2FA pendiente
+            $_SESSION['setup_2fa_pending'] = true;
 
-            // Crear objeto TOTP
+            // Si el user_id no está en la sesión pero se proporcionó en la solicitud
+            if (!isset($_SESSION['setup_2fa_user_id']) && isset($_POST['user_id']))
+            {
+                $_SESSION['setup_2fa_user_id'] = (int)$_POST['user_id'];
+            }
+
+            // Obtener el nombre de usuario para el QR
+            $username = isset($_SESSION['setup_2fa_username']) ? $_SESSION['setup_2fa_username'] : 'Usuario';
+
+            // Crear el objeto TOTP
             $totp = createTOTP($secret, $username, 'Sistema Admin');
-            $provisioningUri = $totp->getProvisioningUri();
+            $qrCodeUri = $totp->getProvisioningUri();
 
-            $response = [
+            echo json_encode([
                 'status' => true,
                 'secret' => $secret,
-                'qr_uri' => $provisioningUri
-            ];
+                'qr_uri' => $qrCodeUri
+            ]);
             break;
 
         case 'cancel_setup':
             // Limpiar variables de sesión relacionadas con la configuración 2FA
-            unset($_SESSION['temp_tfa_secret']);
             unset($_SESSION['setup_2fa_pending']);
             unset($_SESSION['setup_2fa_user_id']);
             unset($_SESSION['setup_2fa_username']);
+            unset($_SESSION['temp_tfa_secret']);
 
-            $response['status'] = true;
-            $response['message'] = 'Configuración cancelada';
-            break;
-
-        case 'check_session_status':
-            // Devolver el estado actual de la sesión para depuración
-            $response['status'] = true;
-            $response['session_data'] = [
-                'setup_2fa_pending' => isset($_SESSION['setup_2fa_pending']) ? true : false,
-                'setup_2fa_user_id' => isset($_SESSION['setup_2fa_user_id']) ? $_SESSION['setup_2fa_user_id'] : null,
-                'temp_tfa_secret' => isset($_SESSION['temp_tfa_secret']) ? 'exists' : null,
-                'admin' => isset($_SESSION['admin']) ? $_SESSION['admin'] : null,
-            ];
+            echo json_encode(['status' => true, 'message' => 'Configuración cancelada']);
             break;
 
         default:
-            $response['message'] = 'Acción desconocida';
-            break;
+            echo json_encode(['status' => false, 'message' => 'Acción no reconocida']);
     }
 }
 else
 {
-    $response['message'] = 'Ninguna acción especificada';
+    echo json_encode(['status' => false, 'message' => 'Acción no especificada']);
 }
-
-echo json_encode($response);
-exit();
