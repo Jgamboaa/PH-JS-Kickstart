@@ -3,6 +3,7 @@ require_once dirname(dirname(dirname(__DIR__))) . '/config/db_conn.php';
 require_once dirname(dirname(__FILE__)) . '/session_config.php';
 require_once dirname(dirname(__FILE__)) . '/functions/2fa_functions.php';
 require_once dirname(dirname(__FILE__)) . '/security_functions.php';
+$APP_NAME = env('APP_NAME');
 
 header('Content-Type: application/json');
 $response = ['status' => false, 'message' => ''];
@@ -44,7 +45,7 @@ if (isset($_POST['action']))
             $username = isset($_SESSION['setup_2fa_username']) ? $_SESSION['setup_2fa_username'] : 'Usuario';
 
             // Crear el objeto TOTP
-            $totp = createTOTP($secret, $username, 'Sistema Admin');
+            $totp = createTOTP($secret, $username, $APP_NAME);
             $qrCodeUri = $totp->getProvisioningUri();
 
             echo json_encode([
