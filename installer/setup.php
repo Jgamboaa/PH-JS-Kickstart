@@ -344,8 +344,8 @@ class Setup
             $passwordHashed = password_hash($this->adminPassword, PASSWORD_DEFAULT);
             $today = date("Y-m-d");
 
-            $adminSql = "INSERT INTO admin (username, password, user_firstname, user_lastname, photo, created_on, roles_ids, admin_gender) 
-                VALUES ('{$this->adminEmail}', '{$passwordHashed}', '{$this->adminFirstname}', '{$this->adminLastname}', '', '{$today}', '{$roleId}', '{$this->adminGender}')";
+            $adminSql = "INSERT INTO admin (username, password, user_firstname, user_lastname, photo, created_on, roles_ids, admin_gender, tfa_required) 
+                VALUES ('{$this->adminEmail}', '{$passwordHashed}', '{$this->adminFirstname}', '{$this->adminLastname}', '', '{$today}', '{$roleId}', '{$this->adminGender}', 1)";
 
             if (!$conn->query($adminSql))
             {
