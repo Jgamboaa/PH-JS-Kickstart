@@ -437,9 +437,15 @@ $csrf_token = generateCSRFToken();
               // Mostrar el secreto
               $('#secret-key').text(response.secret);
 
-              // Generar el código QR
+              // Preparar el contenedor para el QR code con estilos flex
               $('#qrcode-container').empty();
-              new QRCode(document.getElementById("qrcode-container"), {
+              const qrcodeContainer = document.getElementById("qrcode-container");
+              qrcodeContainer.style.display = "flex";
+              qrcodeContainer.style.alignItems = "center";
+              qrcodeContainer.style.justifyContent = "center";
+
+              // Generar el código QR
+              new QRCode(qrcodeContainer, {
                 text: response.qr_uri,
                 width: 200,
                 height: 200,
@@ -759,9 +765,15 @@ $csrf_token = generateCSRFToken();
               // Mostrar el secreto
               $('#secret-key').text(response.secret);
 
-              // Generar el código QR
+              // Preparar el contenedor para el QR code con estilos flex
               $('#qrcode-container').empty();
-              new QRCode(document.getElementById("qrcode-container"), {
+              const qrcodeContainer = document.getElementById("qrcode-container");
+              qrcodeContainer.style.display = "flex";
+              qrcodeContainer.style.alignItems = "center";
+              qrcodeContainer.style.justifyContent = "center";
+
+              // Generar el código QR
+              new QRCode(qrcodeContainer, {
                 text: response.qr_uri,
                 width: 200,
                 height: 200,
