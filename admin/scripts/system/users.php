@@ -53,6 +53,10 @@
             $('#admin_modal_label').text('Crear Usuario');
             $('#current_photo').hide();
             $('#admin_photo').attr('src', '');
+
+            // Ocultar solo la sección avanzada de 2FA, dejando visible el selector de requerido
+            $('#mfa_advanced_section').addClass('d-none');
+
             $('#admin_modal').modal('show');
             $('#admin_form select').select2({
                 theme: 'bootstrap4',
@@ -68,8 +72,8 @@
             $('#admin_modal_label').text('Editar Usuario');
             $('#admin_id').val(id);
 
-            // Mostrar sección MFA en edición y ocultar en creación
-            $('#mfa_section').removeClass('d-none');
+            // Mostrar la sección avanzada de 2FA para edición
+            $('#mfa_advanced_section').removeClass('d-none');
 
             $.ajax({
                 type: 'POST',

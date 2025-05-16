@@ -125,21 +125,22 @@ else
                             </select>
                         </div>
 
-                        <!-- Nueva sección para configuración de 2FA - Solo visible en edición -->
-                        <div id="mfa_section" class="d-none">
+                        <!-- Campo 2FA requerido - Visible siempre (creación y edición) -->
+                        <div class="form-group">
+                            <label for="tfa_required" class="control-label">2FA requerido</label>
+                            <select class="form-control" id="tfa_required" name="tfa_required">
+                                <option value="0">Opcional</option>
+                                <option value="1">Obligatorio</option>
+                            </select>
+                            <small class="text-muted">Si es obligatorio, el usuario deberá configurar 2FA en su primer inicio de sesión</small>
+                        </div>
+
+                        <!-- Sección avanzada de 2FA - Solo visible en edición -->
+                        <div id="mfa_advanced_section" class="d-none">
                             <hr>
-                            <h5>Configuración de Autenticación de Dos Factores (2FA)</h5>
+                            <h5>Configuración avanzada de Autenticación de Dos Factores (2FA)</h5>
 
                             <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label for="tfa_required">2FA requerido</label>
-                                        <select class="form-control" id="tfa_required" name="tfa_required">
-                                            <option value="0">Opcional</option>
-                                            <option value="1">Obligatorio</option>
-                                        </select>
-                                    </div>
-                                </div>
                                 <div class="col-md-6">
                                     <div class="form-group">
                                         <label>Estado actual de 2FA</label>
@@ -148,20 +149,22 @@ else
                                         </div>
                                     </div>
                                 </div>
-                            </div>
-
-                            <div class="row mt-2">
                                 <div class="col-md-6">
-                                    <button type="button" class="btn btn-info btn-sm btn-block" id="btn_reset_mfa">
-                                        <i class="fa-duotone fa-solid fa-shield-check"></i> Restablecer 2FA
-                                    </button>
-                                    <small class="text-muted">Desactiva 2FA y elimina configuración actual</small>
-                                </div>
-                                <div class="col-md-6">
-                                    <button type="button" class="btn btn-warning btn-sm btn-block" id="btn_generate_codes">
-                                        <i class="fa-duotone fa-solid fa-key"></i> Generar códigos de respaldo
-                                    </button>
-                                    <small class="text-muted">Crea nuevos códigos de respaldo para el usuario</small>
+                                    <div class="form-group">
+                                        <label>Acciones de administración</label>
+                                        <div class="row mt-2">
+                                            <div class="col-md-6">
+                                                <button type="button" class="btn btn-info btn-sm btn-block" id="btn_reset_mfa">
+                                                    <i class="fa-duotone fa-solid fa-shield-check"></i> Restablecer
+                                                </button>
+                                            </div>
+                                            <div class="col-md-6">
+                                                <button type="button" class="btn btn-warning btn-sm btn-block" id="btn_generate_codes">
+                                                    <i class="fa-duotone fa-solid fa-key"></i> Generar códigos
+                                                </button>
+                                            </div>
+                                        </div>
+                                    </div>
                                 </div>
                             </div>
                         </div>

@@ -20,12 +20,14 @@ class UserController
             $roles_ids = isset($data['roles_ids']) && is_array($data['roles_ids']) ?
                 implode(",", $data['roles_ids']) : "";
             $today = date("Y-m-d");
+            // Añadir campo tfa_required
+            $tfa_required = isset($data['tfa_required']) ? (int)$data['tfa_required'] : 0;
 
             // Manejar subida de foto
             $new_filename = $this->handlePhotoUpload($files, $usuario);
 
-            $sql = "INSERT INTO admin (username, password, user_firstname, user_lastname, photo, created_on, roles_ids, admin_gender) 
-                    VALUES (:usuario, :password, :firstname, :lastname, :new_filename, :today, :roles_ids, :gender)";
+            $sql = "INSERT INTO admin (username, password, user_firstname, user_lastname, photo, created_on, roles_ids, admin_gender, tfa_required) 
+                    VALUES (:usuario, :password, :firstname, :lastname, :new_filename, :today, :roles_ids, :gender, :tfa_required)";
 
             $stmt = $this->conn->prepare($sql);
 
@@ -37,6 +39,7 @@ class UserController
             $stmt->bindParam(':today', $today);
             $stmt->bindParam(':roles_ids', $roles_ids);
             $stmt->bindParam(':gender', $gender);
+            $stmt->bindParam(':tfa_required', $tfa_required);
 
             if ($stmt->execute())
             {
@@ -61,6 +64,8 @@ class UserController
             $gender = $data['gender'];
             $roles_ids = isset($data['roles_ids']) && is_array($data['roles_ids']) ?
                 implode(",", $data['roles_ids']) : "";
+            // Añadir campo tfa_required
+            $tfa_required = isset($data['tfa_required']) ? (int)$data['tfa_required'] : 0;
 
             // Obtener información actual del usuario
             $sql_user = "SELECT * FROM admin WHERE id = :id";
@@ -98,6 +103,7 @@ class UserController
                         user_lastname = :lastname,
                         roles_ids = :roles_ids, 
                         admin_gender = :gender,
+                        tfa_required = :tfa_required,
                         photo = :photo
                         WHERE id = :id";
             }
@@ -109,7 +115,8 @@ class UserController
                         user_firstname = :firstname, 
                         user_lastname = :lastname,
                         roles_ids = :roles_ids, 
-                        admin_gender = :gender
+                        admin_gender = :gender,
+                        tfa_required = :tfa_required
                         WHERE id = :id";
             }
 
@@ -121,6 +128,7 @@ class UserController
             $stmt->bindParam(':lastname', $lastname);
             $stmt->bindParam(':roles_ids', $roles_ids);
             $stmt->bindParam(':gender', $gender);
+            $stmt->bindParam(':tfa_required', $tfa_required);
             $stmt->bindParam(':id', $id);
 
             if (!empty($photo_sql))
