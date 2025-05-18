@@ -4,9 +4,11 @@
 
 El sistema utiliza varias bibliotecas y dependencias que se instalan automáticamente a través de Composer:
 
-- **PHPMailer**: Para el envío de correos electrónicos
-- **DOMPDF**: Para la generación de archivos PDF
-- **PHPSpreadsheet**: Para la manipulación de hojas de cálculo Excel
+- **PHPMailer (v6.10.0)**: Para el envío de correos electrónicos con soporte SMTP, adjuntos y HTML
+- **DOMPDF (v3.1.0)**: Para la generación de archivos PDF desde HTML
+- **PHPSpreadsheet (v4.2.0)**: Para la manipulación y generación de hojas de cálculo Excel, CSV y otros formatos
+- **TCPDF (v6.9.4)**: Alternativa para generación de PDF con soporte para headers/footers personalizados
+- **OTPHP (v11.3.0)**: Implementación de códigos OTP para autenticación de dos factores (2FA)
 
 ### Requisitos del servidor
 
@@ -16,6 +18,10 @@ El sistema utiliza varias bibliotecas y dependencias que se instalan automática
 - Extensión mbstring de PHP
 - Extensión zip de PHP
 - GD Library (para manipulación de imágenes)
+- Extensión curl para TCPDF
+- Extensión dom para DOMPDF y PHPSpreadsheet
+- Extensión fileinfo
+- Extensión xml, xmlreader, y xmlwriter
 
 ### Tecnologías utilizadas:
 
