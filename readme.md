@@ -116,3 +116,5 @@ Si el instalador no puede instalar automáticamente las dependencias, puedes ins
 ```bash
 composer install
 ```
+
+[![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Jgamboaa/PH-JS-Kickstart)
