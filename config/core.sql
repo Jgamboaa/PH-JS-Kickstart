@@ -49,7 +49,7 @@ CREATE TABLE
     `tfa_secret` VARCHAR(100) NULL,
     `tfa_enabled` TINYINT(1) NOT NULL DEFAULT 0,
     `tfa_backup_codes` TEXT NULL,
-    `tfa_required` INT NOT NULL DEFAULT 0,
+    `tfa_required` INT NOT NULL DEFAULT 1,
     PRIMARY KEY (`id`)
   ) ENGINE = InnoDB AUTO_INCREMENT = 1 DEFAULT CHARSET = utf8mb4 COLLATE = utf8mb4_spanish_ci;
 
