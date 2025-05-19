@@ -684,6 +684,19 @@ $csrf_token = generateCSRFToken();
         $('#email-check-container').show();
         $('#emailaddress').val('').focus();
       });
+
+      // Detectar parámetros de URL para mostrar mensajes
+      const urlParams = new URLSearchParams(window.location.search);
+
+      // Mensaje para configuración de 2FA requerida
+      if (urlParams.get('setup_2fa') === 'required') {
+        Swal.fire({
+          icon: 'warning',
+          title: 'Configuración 2FA Requerida',
+          text: 'La autenticación de dos factores es obligatoria para acceder al sistema. Por favor inicie sesión y configure su 2FA para continuar.',
+          confirmButtonText: 'Entendido'
+        });
+      }
     });
   </script>
 </body>

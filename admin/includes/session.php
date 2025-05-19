@@ -51,6 +51,26 @@ $stmt = $conn->prepare($sql);
 $stmt->execute([$_SESSION['admin']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+// Verificar si el usuario tiene MFA requerido pero no habilitado
+if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
+{
+	// Limpiar todas las variables de sesión
+	$_SESSION = array();
+
+	// Destruir la cookie de sesión específica de admin
+	if (isset($_COOKIE['admin_session']))
+	{
+		setcookie('admin_session', '', time() - 3600, '/admin', '', true, true);
+	}
+
+	// Destruir la sesión
+	session_destroy();
+
+	// Redireccionar al login con parámetro específico
+	header('location: index.php?setup_2fa=required');
+	exit();
+}
+
 //update last_login time
 $now_login = date('Y-m-d H:i:s');
 $sql = "UPDATE admin SET last_login = ? WHERE id = ?";
