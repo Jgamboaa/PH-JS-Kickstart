@@ -6,6 +6,30 @@ $mail_support = env('MAIL_SUPPORT');
 header('Content-Type: application/json');
 $response = ['status' => false, 'message' => '', 'redirect' => false];
 
+// Función para registrar la sesión del dispositivo
+function registerDeviceSession($user_id, $device_token, $ip_address, $user_agent)
+{
+	global $conn;
+
+	try
+	{
+		// Registramos o actualizamos la sesión para este dispositivo
+		$sql = "INSERT INTO active_sessions (user_id, device_token, ip_address, user_agent, last_activity, created_at) 
+                VALUES (?, ?, ?, ?, NOW(), NOW())
+                ON DUPLICATE KEY UPDATE 
+                ip_address = VALUES(ip_address), 
+                user_agent = VALUES(user_agent), 
+                last_activity = NOW()";
+		$stmt = $conn->prepare($sql);
+		$stmt->execute([$user_id, $device_token, $ip_address, $user_agent]);
+	}
+	catch (PDOException $e)
+	{
+		// Si hay un error al registrar la sesión, continuamos de todos modos
+		// pero idealmente deberíamos registrar este error
+	}
+}
+
 // Verificación de autenticación por contraseña
 if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['csrf_token'] === $_SESSION['csrf_token'])
 {
@@ -35,7 +59,21 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 				else
 				{
 					resetLoginAttempts($username);
+
+					// Generamos un nuevo ID de sesión para este dispositivo
 					session_regenerate_id(true);
+
+					// Agregamos un token único para este dispositivo
+					$device_token = bin2hex(random_bytes(16));
+					$_SESSION['device_token'] = $device_token;
+
+					// Registramos la sesión para este dispositivo
+					registerDeviceSession($row['id'], $device_token, $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+
+					// Almacenamos IP y user agent para seguimiento
+					$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+					$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+
 					logLoginActivity($username, true);
 
 					// NUEVO: Verificar si 2FA es requerido pero no está configurado
@@ -291,7 +329,21 @@ else if (isset($_POST['login_2fa']) && isset($_POST['csrf_token']) && $_POST['cs
 	if ($verification_success)
 	{
 		resetLoginAttempts($username);
+
+		// Generamos un nuevo ID de sesión para este dispositivo
 		session_regenerate_id(true);
+
+		// Agregamos un token único para este dispositivo
+		$device_token = bin2hex(random_bytes(16));
+		$_SESSION['device_token'] = $device_token;
+
+		// Registramos la sesión para este dispositivo
+		registerDeviceSession($row['id'], $device_token, $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+
+		// Almacenamos IP y user agent para seguimiento
+		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+
 		logLoginActivity($username, true);
 
 		// Actualizar último login

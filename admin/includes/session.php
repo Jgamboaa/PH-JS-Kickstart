@@ -4,12 +4,37 @@ require_once dirname(__DIR__) . '/../config/db_conn.php';
 require_once __DIR__ . '/security_functions.php';
 date_default_timezone_set(env('APP_TIMEZONE'));
 
-
 // Verificar y renovar la sesión
 function checkSession()
 {
+	global $conn;
 	$max_lifetime = 30 * 24 * 60 * 60; // 30 días en segundos
 	$current_time = time();
+
+	// Verificar posible secuestro de sesión - Modificado para permitir múltiples dispositivos
+	if (isset($_SESSION['ip_address']) && $_SESSION['ip_address'] !== $_SERVER['REMOTE_ADDR'])
+	{
+		// Ya no cerramos la sesión, solo actualizamos el valor
+		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+
+		// Opcional: Registrar el cambio de IP para auditoría
+		if (isset($_SESSION['admin']))
+		{
+			logDeviceChange($_SESSION['admin'], 'ip_change', $_SESSION['ip_address'], $_SERVER['REMOTE_ADDR']);
+		}
+	}
+
+	if (isset($_SESSION['user_agent']) && $_SESSION['user_agent'] !== $_SERVER['HTTP_USER_AGENT'])
+	{
+		// Ya no cerramos la sesión, solo actualizamos el valor
+		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+
+		// Opcional: Registrar el cambio de user-agent para auditoría
+		if (isset($_SESSION['admin']))
+		{
+			logDeviceChange($_SESSION['admin'], 'user_agent_change', $_SESSION['user_agent'], $_SERVER['HTTP_USER_AGENT']);
+		}
+	}
 
 	if (
 		isset($_SESSION['last_activity']) &&
@@ -19,7 +44,7 @@ function checkSession()
 		// La sesión ha expirado
 		session_unset();
 		session_destroy();
-		header('location: ../index.php');
+		header('location: ../admin/index.php?error=session_expired');
 		exit();
 	}
 
@@ -35,6 +60,58 @@ function checkSession()
 	{
 		session_regenerate_id(true);
 		$_SESSION['created'] = time();
+		// Actualizar tiempo de regeneración
+		$_SESSION['created'] = time();
+	}
+
+	// Asegurar que las variables de control de sesión estén siempre presentes
+	if (!isset($_SESSION['ip_address']))
+	{
+		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+	}
+
+	if (!isset($_SESSION['user_agent']))
+	{
+		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+	}
+
+	// Añadir un identificador de dispositivo único si no existe
+	if (!isset($_SESSION['device_token']))
+	{
+		$_SESSION['device_token'] = bin2hex(random_bytes(16));
+	}
+
+	// Actualizar la última actividad en la tabla active_sessions si hay un usuario logueado
+	if (isset($_SESSION['admin']) && isset($_SESSION['device_token']))
+	{
+		try
+		{
+			$sql = "UPDATE active_sessions SET last_activity = NOW() 
+					WHERE user_id = ? AND device_token = ?";
+			$stmt = $conn->prepare($sql);
+			$stmt->execute([$_SESSION['admin'], $_SESSION['device_token']]);
+		}
+		catch (PDOException $e)
+		{
+			// Si hay un error, continuamos sin interrumpir la sesión
+		}
+	}
+}
+
+// Función para registrar cambios de dispositivo para auditoría
+function logDeviceChange($user_id, $change_type, $old_value, $new_value)
+{
+	global $conn;
+	try
+	{
+		$sql = "INSERT INTO session_logs (user_id, log_type, old_value, new_value, created_at) 
+				VALUES (?, ?, ?, ?, NOW())";
+		$stmt = $conn->prepare($sql);
+		$stmt->execute([$user_id, $change_type, $old_value, $new_value]);
+	}
+	catch (PDOException $e)
+	{
+		// Si la tabla no existe, no fallamos, solo ignoramos el log
 	}
 }
 
@@ -71,7 +148,7 @@ if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
 	exit();
 }
 
-//update last_login time
+// update last_login time
 $now_login = date('Y-m-d H:i:s');
 $sql = "UPDATE admin SET last_login = ? WHERE id = ?";
 $stmt = $conn->prepare($sql);
