@@ -6,9 +6,10 @@ $host = env('DB_HOST');
 $user = env('DB_USER');
 $pass = env('DB_PASS');
 $db   = env('DB_NAME');
+$port = env('DB_PORT', '3306'); // Puerto por defecto para MySQL
 
 // Construir el DSN de la conexión
-$dsn = "mysql:host=$host;dbname=$db;charset=utf8";
+$dsn = "mysql:host=$host;dbname=$db;charset=utf8;port=$port";
 
 // Opciones para la conexión PDO
 $options = [
