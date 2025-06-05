@@ -29,24 +29,27 @@ $config = [
 ];
 
 // Determinar el modo de operación (descargar o email)
-$mode = isset($_POST['mode']) ? $_POST['mode'] : 'download';
+$mode  = isset($_POST['mode']) ? $_POST['mode'] : 'download';
 $email = isset($_POST['email']) ? $_POST['email'] : $mail_support; // Usar el correo de soporte si no se proporciona otro
 
 // Nombre del archivo temporal para almacenar el respaldo
 $filename = __DIR__ . "/DB_BACKUP_" . date("Y-m-d-H-i-s") . ".sql";
 
-// Función para respaldar la base de datos usando PDO
+/**
+ * Función para respaldar la base de datos usando PDO.
+ * Genera INSERTs en lotes de $batchSize filas cada uno.
+ */
 function backupDatabaseWithPDO($conn, $filename)
 {
 	try
 	{
-		// Función para remover cláusulas DEFINER
+		// Función para remover cláusulas DEFINER de vistas, funciones, etc.
 		function removeDefiner($createStatement)
 		{
-			// Patrón para encontrar y eliminar la cláusula DEFINER
 			return preg_replace('/DEFINER=`[^`]+`@`[^`]+`\s/', '', $createStatement);
 		}
 
+		// Obtenemos la lista de tablas
 		$tables = [];
 		$result = $conn->query("SHOW TABLES");
 		while ($row = $result->fetch(PDO::FETCH_NUM))
@@ -54,168 +57,189 @@ function backupDatabaseWithPDO($conn, $filename)
 			$tables[] = $row[0];
 		}
 
-		$return = "-- Respaldo de base de datos generado el " . date("Y-m-d H:i:s") . "\n";
-		$return .= "-- Usando PDO\n\n";
-		$return .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
+		// Cabecera del archivo SQL de respaldo
+		$output  = "-- Respaldo de base de datos generado el " . date("Y-m-d H:i:s") . "\n";
+		$output .= "-- Usando PDO\n\n";
+		$output .= "SET FOREIGN_KEY_CHECKS=0;\n\n";
 
-		// Obtener y guardar estructura de tablas
+		// Definir tamaño de lote: cuántas filas por INSERT máximo
+		$batchSize = 1000;
+
+		// ===== 1) Respaldar estructura y datos de cada tabla =====
 		foreach ($tables as $table)
 		{
-			$result = $conn->query("SHOW CREATE TABLE `$table`");
-			$row = $result->fetch();
+			// 1.a) Estructura de la tabla
+			$stmtCreate = $conn->query("SHOW CREATE TABLE `$table`");
+			$rowCreate  = $stmtCreate->fetch(PDO::FETCH_ASSOC);
 
-			$return .= "\n\n-- Estructura de la tabla `$table`\n\n";
-			$return .= "DROP TABLE IF EXISTS `$table`;\n";
-			$return .= $row['Create Table'] . ";\n\n";
+			$output .= "\n\n-- Estructura de la tabla `$table`\n\n";
+			$output .= "DROP TABLE IF EXISTS `$table`;\n";
+			$output .= $rowCreate['Create Table'] . ";\n\n";
 
-			// Obtener datos
-			$result = $conn->query("SELECT * FROM `$table`");
-			$columnCount = $result->columnCount();
+			// 1.b) Datos de la tabla: fetchAll para armar el lote
+			$dataStmt    = $conn->query("SELECT * FROM `$table`");
+			$columnCount = $dataStmt->columnCount();
+			$allRows     = $dataStmt->fetchAll(PDO::FETCH_NUM);
 
-			if ($result->rowCount() > 0)
+			if (count($allRows) > 0)
 			{
-				$return .= "-- Volcado de datos para la tabla `$table`\n";
+				$output .= "-- Volcado de datos para la tabla `$table`\n";
 
-				while ($row = $result->fetch(PDO::FETCH_NUM))
+				// Preparar array de cadenas con cada fila escapada
+				$rowsEscaped = [];
+				foreach ($allRows as $rowValues)
 				{
-					$return .= "INSERT INTO `$table` VALUES (";
+					$escapedValues = [];
 					for ($j = 0; $j < $columnCount; $j++)
 					{
-						if (isset($row[$j]))
+						if (isset($rowValues[$j]))
 						{
-							$row[$j] = addslashes($row[$j]);
-							$row[$j] = str_replace("\n", "\\n", $row[$j]);
-							$return .= '"' . $row[$j] . '"';
+							$val = addslashes($rowValues[$j]);
+							$val = str_replace("\n", "\\n", $val);
+							$escapedValues[] = '"' . $val . '"';
 						}
 						else
 						{
-							$return .= 'NULL';
-						}
-						if ($j < ($columnCount - 1))
-						{
-							$return .= ',';
+							$escapedValues[] = 'NULL';
 						}
 					}
-					$return .= ");\n";
+					$rowsEscaped[] = "(" . implode(",", $escapedValues) . ")";
+				}
+
+				// Fragmentar $rowsEscaped en bloques de $batchSize
+				$chunks = array_chunk($rowsEscaped, $batchSize, true);
+				foreach ($chunks as $chunkIndex => $chunkRows)
+				{
+					$output .= "INSERT INTO `$table` VALUES \n";
+					$output .= implode(",\n", $chunkRows) . ";\n\n";
 				}
 			}
-			$return .= "\n\n";
+			else
+			{
+				// Si no hay datos, dejamos una línea en blanco
+				$output .= "\n";
+			}
 		}
 
-		// Respaldar Vistas
-		$return .= "\n\n-- --------------------------------------------------------\n";
-		$return .= "-- Vistas\n";
-		$return .= "-- --------------------------------------------------------\n\n";
+		// ===== 2) Respaldar Vistas =====
+		$output .= "\n\n-- --------------------------------------------------------\n";
+		$output .= "-- Vistas\n";
+		$output .= "-- --------------------------------------------------------\n\n";
 
-		$result = $conn->query("SHOW FULL TABLES WHERE Table_type = 'VIEW'");
-		while ($row = $result->fetch(PDO::FETCH_NUM))
+		$viewResult = $conn->query("SHOW FULL TABLES WHERE Table_type = 'VIEW'");
+		while ($row = $viewResult->fetch(PDO::FETCH_NUM))
 		{
-			$viewName = $row[0];
-			$stmt = $conn->query("SHOW CREATE VIEW `$viewName`");
-			$viewCreate = $stmt->fetch();
+			$viewName   = $row[0];
+			$stmtView   = $conn->query("SHOW CREATE VIEW `$viewName`");
+			$viewCreate = $stmtView->fetch(PDO::FETCH_ASSOC);
 			$createView = removeDefiner($viewCreate['Create View']);
 
-			$return .= "\n-- Estructura para la vista `$viewName`\n";
-			$return .= "DROP VIEW IF EXISTS `$viewName`;\n";
-			$return .= $createView . ";\n\n";
+			$output .= "\n-- Estructura para la vista `$viewName`\n";
+			$output .= "DROP VIEW IF EXISTS `$viewName`;\n";
+			$output .= $createView . ";\n\n";
 		}
 
-		// Respaldar Funciones
-		$return .= "\n\n-- --------------------------------------------------------\n";
-		$return .= "-- Funciones\n";
-		$return .= "-- --------------------------------------------------------\n\n";
+		// ===== 3) Respaldar Funciones =====
+		$output .= "\n\n-- --------------------------------------------------------\n";
+		$output .= "-- Funciones\n";
+		$output .= "-- --------------------------------------------------------\n\n";
 
-		$result = $conn->query("SHOW FUNCTION STATUS WHERE Db = DATABASE()");
-		while ($row = $result->fetch(PDO::FETCH_ASSOC))
+		$funcResult = $conn->query("SHOW FUNCTION STATUS WHERE Db = DATABASE()");
+		while ($row = $funcResult->fetch(PDO::FETCH_ASSOC))
 		{
-			$functionName = $row['Name'];
-			$stmt = $conn->query("SHOW CREATE FUNCTION `$functionName`");
-			$functionCreate = $stmt->fetch();
-			$createFunction = removeDefiner($functionCreate['Create Function']);
+			$functionName    = $row['Name'];
+			$stmtFunction    = $conn->query("SHOW CREATE FUNCTION `$functionName`");
+			$functionCreate  = $stmtFunction->fetch(PDO::FETCH_ASSOC);
+			$createFunction  = removeDefiner($functionCreate['Create Function']);
 
-			$return .= "\n-- Estructura para la función `$functionName`\n";
-			$return .= "DROP FUNCTION IF EXISTS `$functionName`;\n";
-			$return .= "DELIMITER //\n";
-			$return .= $createFunction . "//\n";
-			$return .= "DELIMITER ;\n\n";
+			$output .= "\n-- Estructura para la función `$functionName`\n";
+			$output .= "DROP FUNCTION IF EXISTS `$functionName`;\n";
+			$output .= "DELIMITER //\n";
+			$output .= $createFunction . "//\n";
+			$output .= "DELIMITER ;\n\n";
 		}
 
-		// Respaldar Procedimientos
-		$return .= "\n\n-- --------------------------------------------------------\n";
-		$return .= "-- Procedimientos\n";
-		$return .= "-- --------------------------------------------------------\n\n";
+		// ===== 4) Respaldar Procedimientos =====
+		$output .= "\n\n-- --------------------------------------------------------\n";
+		$output .= "-- Procedimientos\n";
+		$output .= "-- --------------------------------------------------------\n\n";
 
-		$result = $conn->query("SHOW PROCEDURE STATUS WHERE Db = DATABASE()");
-		while ($row = $result->fetch(PDO::FETCH_ASSOC))
+		$procResult = $conn->query("SHOW PROCEDURE STATUS WHERE Db = DATABASE()");
+		while ($row = $procResult->fetch(PDO::FETCH_ASSOC))
 		{
-			$procedureName = $row['Name'];
-			$stmt = $conn->query("SHOW CREATE PROCEDURE `$procedureName`");
-			$procedureCreate = $stmt->fetch();
-			$createProcedure = removeDefiner($procedureCreate['Create Procedure']);
+			$procedureName     = $row['Name'];
+			$stmtProcedure     = $conn->query("SHOW CREATE PROCEDURE `$procedureName`");
+			$procedureCreate   = $stmtProcedure->fetch(PDO::FETCH_ASSOC);
+			$createProcedure   = removeDefiner($procedureCreate['Create Procedure']);
 
-			$return .= "\n-- Estructura para el procedimiento `$procedureName`\n";
-			$return .= "DROP PROCEDURE IF EXISTS `$procedureName`;\n";
-			$return .= "DELIMITER //\n";
-			$return .= $createProcedure . "//\n";
-			$return .= "DELIMITER ;\n\n";
+			$output .= "\n-- Estructura para el procedimiento `$procedureName`\n";
+			$output .= "DROP PROCEDURE IF EXISTS `$procedureName`;\n";
+			$output .= "DELIMITER //\n";
+			$output .= $createProcedure . "//\n";
+			$output .= "DELIMITER ;\n\n";
 		}
 
-		// Respaldar Triggers
-		$return .= "\n\n-- --------------------------------------------------------\n";
-		$return .= "-- Triggers\n";
-		$return .= "-- --------------------------------------------------------\n\n";
+		// ===== 5) Respaldar Triggers =====
+		$output .= "\n\n-- --------------------------------------------------------\n";
+		$output .= "-- Triggers\n";
+		$output .= "-- --------------------------------------------------------\n\n";
 
 		foreach ($tables as $table)
 		{
-			$result = $conn->query("SHOW TRIGGERS LIKE '$table'");
-			if ($result->rowCount() > 0)
+			$triggerResult = $conn->query("SHOW TRIGGERS LIKE '$table'");
+			if ($triggerResult->rowCount() > 0)
 			{
-				while ($row = $result->fetch(PDO::FETCH_ASSOC))
+				while ($row = $triggerResult->fetch(PDO::FETCH_ASSOC))
 				{
-					$triggerName = $row['Trigger'];
-					$stmt = $conn->query("SHOW CREATE TRIGGER `$triggerName`");
-					$triggerCreate = $stmt->fetch();
-					$createTrigger = removeDefiner($triggerCreate['SQL Original Statement']);
+					$triggerName     = $row['Trigger'];
+					$stmtTrigger     = $conn->query("SHOW CREATE TRIGGER `$triggerName`");
+					$triggerCreate   = $stmtTrigger->fetch(PDO::FETCH_ASSOC);
+					// En MySQL 5.7+, el campo se llama 'SQL Original Statement' o similar
+					$rawStmt         = isset($triggerCreate['SQL Original Statement'])
+						? $triggerCreate['SQL Original Statement']
+						: (isset($triggerCreate['Create Trigger'])
+							? $triggerCreate['Create Trigger']
+							: '');
+					$createTrigger   = removeDefiner($rawStmt);
 
-					$return .= "\n-- Estructura para el trigger `$triggerName`\n";
-					$return .= "DROP TRIGGER IF EXISTS `$triggerName`;\n";
-					$return .= "DELIMITER //\n";
-					$return .= $createTrigger . "//\n";
-					$return .= "DELIMITER ;\n\n";
+					$output .= "\n-- Estructura para el trigger `$triggerName`\n";
+					$output .= "DROP TRIGGER IF EXISTS `$triggerName`;\n";
+					$output .= "DELIMITER //\n";
+					$output .= $createTrigger . "//\n";
+					$output .= "DELIMITER ;\n\n";
 				}
 			}
 		}
 
-		// Respaldar Eventos si están habilitados
-		$result = $conn->query("SELECT @@event_scheduler");
-		$eventSchedulerStatus = $result->fetch(PDO::FETCH_NUM)[0];
-
+		// ===== 6) Respaldar Eventos (si el scheduler está ON) =====
+		$eventSchedulerStatus = $conn->query("SELECT @@event_scheduler")->fetch(PDO::FETCH_NUM)[0];
 		if ($eventSchedulerStatus == 'ON')
 		{
-			$return .= "\n\n-- --------------------------------------------------------\n";
-			$return .= "-- Eventos\n";
-			$return .= "-- --------------------------------------------------------\n\n";
+			$output .= "\n\n-- --------------------------------------------------------\n";
+			$output .= "-- Eventos\n";
+			$output .= "-- --------------------------------------------------------\n\n";
 
-			$result = $conn->query("SHOW EVENTS");
-			while ($row = $result->fetch(PDO::FETCH_ASSOC))
+			$eventResult = $conn->query("SHOW EVENTS");
+			while ($row = $eventResult->fetch(PDO::FETCH_ASSOC))
 			{
-				$eventName = $row['Name'];
-				$stmt = $conn->query("SHOW CREATE EVENT `$eventName`");
-				$eventCreate = $stmt->fetch();
-				$createEvent = removeDefiner($eventCreate['Create Event']);
+				$eventName    = $row['Name'];
+				$stmtEvent    = $conn->query("SHOW CREATE EVENT `$eventName`");
+				$eventCreate  = $stmtEvent->fetch(PDO::FETCH_ASSOC);
+				$createEvent  = removeDefiner($eventCreate['Create Event']);
 
-				$return .= "\n-- Estructura para el evento `$eventName`\n";
-				$return .= "DROP EVENT IF EXISTS `$eventName`;\n";
-				$return .= "DELIMITER //\n";
-				$return .= $createEvent . "//\n";
-				$return .= "DELIMITER ;\n\n";
+				$output .= "\n-- Estructura para el evento `$eventName`\n";
+				$output .= "DROP EVENT IF EXISTS `$eventName`;\n";
+				$output .= "DELIMITER //\n";
+				$output .= $createEvent . "//\n";
+				$output .= "DELIMITER ;\n\n";
 			}
 		}
 
-		$return .= "SET FOREIGN_KEY_CHECKS=1;\n";
+		// Restaurar FOREIGN_KEY_CHECKS
+		$output .= "SET FOREIGN_KEY_CHECKS=1;\n";
 
-		// Guardar archivo
-		if (file_put_contents($filename, $return))
+		// Guardar todo en el archivo
+		if (file_put_contents($filename, $output) !== false)
 		{
 			return [true, null];
 		}
@@ -257,13 +281,13 @@ if (file_exists($filename))
 		unlink($filename); // Eliminar archivo después de descargarlo
 		exit;
 	}
-	else if ($mode == 'email')
+	elseif ($mode == 'email')
 	{
 		// Modo email - enviar por correo electrónico
-		$asunto = "DB_BACKUP";
-		$cuerpo = "Adjunto se encuentra el respaldo de la base de datos generado el " . date("Y-m-d H:i:s") . ".";
-		$destinatarios = [$email]; // Usar el correo proporcionado
-		$archivosAdjuntos = [$filename]; // Adjuntar el archivo generado
+		$asunto           = "DB_BACKUP";
+		$cuerpo           = "Adjunto se encuentra el respaldo de la base de datos generado el " . date("Y-m-d H:i:s") . ".";
+		$destinatarios    = [$email];      // Usar el correo proporcionado
+		$archivosAdjuntos = [$filename];   // Adjuntar el archivo generado
 
 		try
 		{
