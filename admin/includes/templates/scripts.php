@@ -113,43 +113,6 @@ if (!isset($range_to))
 
       // Reinicializar custom file input
       bsCustomFileInput.init();
-
-      // Agregar funcionalidad de conversión de fechas
-      function convertDateFormat(dateStr) {
-        const parts = dateStr.split('/');
-        return `${parts[1]}/${parts[0]}/${parts[2]}`;
-      }
-
-      function updateDateFormats() {
-        const dateRangeOvertime = document.getElementById('date_range_overtime');
-        const reservation = document.getElementById('reservation');
-        const reservation2 = document.getElementById('reservation2');
-        const dateRangeB14 = document.getElementById('date_rangeb14');
-
-        if (dateRangeOvertime) {
-          dateRangeOvertime.value = dateRangeOvertime.value.split(' - ').map(convertDateFormat).join(' - ');
-        }
-        if (reservation) {
-          reservation.value = reservation.value.split(' - ').map(convertDateFormat).join(' - ');
-        }
-        if (reservation2) {
-          reservation2.value = reservation2.value.split(' - ').map(convertDateFormat).join(' - ');
-        }
-        if (dateRangeB14) {
-          dateRangeB14.value = convertDateFormat(dateRangeB14.value);
-        }
-      }
-
-      // Agregar los event listeners para los formularios
-      $('#payForm').off('submit').on('submit', function(e) {
-        updateDateFormats();
-      });
-      $('#analitics_form').off('submit').on('submit', function(e) {
-        updateDateFormats();
-      });
-      $('#overtimeForm').off('submit').on('submit', function(e) {
-        updateDateFormats();
-      });
     }
 
     // Función para cargar contenido
