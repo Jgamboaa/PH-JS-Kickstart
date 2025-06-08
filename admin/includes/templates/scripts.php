@@ -40,7 +40,7 @@ if (!isset($range_to))
       formData.append('crud', 'profile');
 
       $.ajax({
-        url: 'includes/system/users_crud.php',
+        url: 'includes/system/users.php',
         type: 'POST',
         data: formData,
         processData: false,
