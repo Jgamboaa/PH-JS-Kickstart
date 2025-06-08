@@ -50,6 +50,51 @@ switch ($action)
         ]);
         break;
 
+    case 'setup_additional_device':
+        // Verificar que el usuario tenga 2FA activo y verificar el código OTP
+        $otp = $_POST['otp'] ?? '';
+
+        if ($user['tfa_enabled'] != 1)
+        {
+            echo json_encode(['status' => false, 'message' => 'Primero debes activar 2FA para añadir dispositivos adicionales.']);
+            exit();
+        }
+
+        if (verifyOTP($user['tfa_secret'], $otp))
+        {
+            // El OTP es válido, generamos la misma información para el dispositivo adicional
+            $totp = createTOTP($user['tfa_secret'], $user['username'], $nombre_sistema);
+            $provisioningUri = $totp->getProvisioningUri();
+
+            echo json_encode([
+                'status' => true,
+                'secret' => $user['tfa_secret'],
+                'qr_uri' => $provisioningUri
+            ]);
+        }
+        else
+        {
+            echo json_encode(['status' => false, 'message' => 'El código ingresado es incorrecto. Inténtalo de nuevo.']);
+        }
+        break;
+
+    case 'verify_additional_device':
+        // Verificar que el código del dispositivo adicional funciona
+        $otp = $_POST['otp'] ?? '';
+
+        if (verifyOTP($user['tfa_secret'], $otp))
+        {
+            echo json_encode([
+                'status' => true,
+                'message' => 'Dispositivo adicional configurado correctamente.'
+            ]);
+        }
+        else
+        {
+            echo json_encode(['status' => false, 'message' => 'El código ingresado es incorrecto. Inténtalo de nuevo.']);
+        }
+        break;
+
     case 'verify_setup':
         // Verificar código OTP para activar 2FA
         $otp = $_POST['otp'] ?? '';
@@ -79,25 +124,6 @@ switch ($action)
                 'message' => 'Autenticación de dos factores activada correctamente.',
                 'backup_codes' => $backupCodes
             ]);
-        }
-        else
-        {
-            echo json_encode(['status' => false, 'message' => 'El código ingresado es incorrecto. Inténtalo de nuevo.']);
-        }
-        break;
-
-    case 'deactivate':
-        // Desactivar 2FA
-        $otp = $_POST['otp'] ?? '';
-
-        if (verifyOTP($user['tfa_secret'], $otp))
-        {
-            // Desactivar 2FA pero mantener el secreto para reactivación fácil
-            $sql = "UPDATE admin SET tfa_enabled = 0 WHERE id = ?";
-            $stmt = $conn->prepare($sql);
-            $stmt->execute([$adminId]);
-
-            echo json_encode(['status' => true, 'message' => 'Autenticación de dos factores desactivada correctamente.']);
         }
         else
         {

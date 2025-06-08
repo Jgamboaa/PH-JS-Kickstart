@@ -268,16 +268,16 @@ if (!isset($range_to))
                 <div class="row">
                     <div class="col-md-6">
                         <div class="card">
-                            <div class="card-header text-center bg-danger">
-                                <b>Desactivar 2FA</b>
+                            <div class="card-header text-center bg-primary">
+                                <b>Añadir Dispositivo Adicional</b>
                             </div>
                             <div class="card-body">
-                                <form id="deactivate2FAForm">
+                                <form id="addDeviceForm">
                                     <div class="form-group">
-                                        <label for="deactivate_otp">Introduce tu código de autenticación actual:</label>
-                                        <input type="text" class="form-control form-control-sm" id="deactivate_otp" name="otp" required placeholder="Código de 6 dígitos" pattern="[0-9]{6}" maxlength="6">
+                                        <label for="add_device_otp">Introduce tu código de autenticación actual:</label>
+                                        <input type="text" class="form-control form-control-sm" id="add_device_otp" name="otp" required placeholder="Código de 6 dígitos" pattern="[0-9]{6}" maxlength="6">
                                     </div>
-                                    <button type="submit" class="btn btn-danger btn-block">Desactivar 2FA</button>
+                                    <button type="submit" class="btn btn-primary btn-block">Configurar Nuevo Dispositivo</button>
                                 </form>
                             </div>
                         </div>
@@ -359,10 +359,10 @@ if (!isset($range_to))
     function initTfaEvents() {
       // Si el 2FA está activado
       if (tfaStatus.enabled) {
-        // Evento para el formulario de desactivación
-        $("#deactivate2FAForm").on("submit", function(e) {
+        // Evento para el formulario de añadir dispositivo
+        $("#addDeviceForm").on("submit", function(e) {
           e.preventDefault();
-          const otp = $("#deactivate_otp").val().trim();
+          const otp = $("#add_device_otp").val().trim();
 
           if (!otp) {
             showErrorMessage(
@@ -375,20 +375,13 @@ if (!isset($range_to))
             url: "includes/system/twofa_ajax.php",
             type: "POST",
             data: {
-              action: "deactivate",
+              action: "setup_additional_device",
               otp: otp,
             },
             dataType: "json",
             success: function(response) {
               if (response.status) {
-                Swal.fire({
-                  icon: "success",
-                  title: "¡Éxito!",
-                  text: response.message,
-                  showConfirmButton: false,
-                  timer: 1500,
-                });
-                loadTfaStatus(); // Recargar el contenido
+                showDeviceSetup(response.secret, response.qr_uri);
               } else {
                 showErrorMessage(response.message);
               }
@@ -539,6 +532,137 @@ if (!isset($range_to))
           });
         });
       }
+    }
+
+    // Función para mostrar la pantalla de configuración de dispositivo adicional
+    function showDeviceSetup(secret, qrUri) {
+      const setupHtml = `
+            <div class="text-center mb-4">
+                <h5>Configura un dispositivo adicional</h5>
+            </div>
+
+            <div class="row justify-content-center">
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-info text-white">
+                            <b>Escanea este código QR en tu nuevo dispositivo</b>
+                        </div>
+                        <div class="card-body">
+                            <div id="qrcode"></div>
+                            <p class="mt-2">o ingresa manualmente esta clave:</p>
+                            <div class="input-group">
+                                <input type="text" class="form-control form-cotrol-sm" value="${secret}" readonly id="secretKey">
+                                <div class="input-group-append">
+                                    <button class="btn btn-outline-secondary" type="button" id="copySecretBtn">
+                                        <i class="fa fa-duotone fa-solid fa-copy"></i>
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="col-md-6">
+                    <div class="card">
+                        <div class="card-header bg-primary text-white">
+                            <b>Instrucciones</b>
+                        </div>
+                        <div class="card-body">
+                            <ol>
+                                <li>Abre la aplicación de autenticación en tu nuevo dispositivo.</li>
+                                <li>Escanea el código QR con la app o ingresa manualmente la clave secreta.</li>
+                                <li>Ingresa el código de 6 dígitos generado por la app para verificar.</li>
+                            </ol>
+                            
+                            <form id="verifyAdditionalDeviceForm" class="mt-4">
+                                <div class="form-group">
+                                    <label for="verify_additional_otp">Código de verificación:</label>
+                                    <input type="text" class="form-control" id="verify_additional_otp" name="otp" required placeholder="Código de 6 dígitos" pattern="[0-9]{6}" maxlength="6">
+                                </div>
+                                <button type="submit" class="btn btn-primary btn-block">Confirmar Dispositivo</button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        `;
+
+      $("#tfa_content_container").html(setupHtml);
+
+      // Centrando el contenedor del código QR
+      const qrcodeContainer = document.getElementById("qrcode");
+      qrcodeContainer.style.display = "flex";
+      qrcodeContainer.style.alignItems = "center";
+      qrcodeContainer.style.justifyContent = "center";
+
+      // Generar código QR
+      new QRCode(qrcodeContainer, {
+        text: qrUri,
+        width: 200,
+        height: 200,
+        colorDark: "#000000",
+        colorLight: "#ffffff",
+        correctLevel: QRCode.CorrectLevel.H,
+      });
+
+      // Evento para copiar la clave secreta
+      $("#copySecretBtn").on("click", function() {
+        const secretInput = document.getElementById("secretKey");
+        secretInput.select();
+        document.execCommand("copy");
+
+        $(this)
+          .tooltip({
+            title: "¡Copiado!",
+            trigger: "manual",
+          })
+          .tooltip("show");
+
+        setTimeout(() => {
+          $(this).tooltip("hide");
+        }, 2000);
+      });
+
+      // Evento para verificar y activar dispositivo adicional
+      $("#verifyAdditionalDeviceForm").on("submit", function(e) {
+        e.preventDefault();
+        const otp = $("#verify_additional_otp").val().trim();
+
+        if (!otp) {
+          showErrorMessage(
+            "Por favor introduce un código de verificación válido"
+          );
+          return;
+        }
+
+        $.ajax({
+          url: "includes/system/twofa_ajax.php",
+          type: "POST",
+          data: {
+            action: "verify_additional_device",
+            otp: otp,
+          },
+          dataType: "json",
+          success: function(response) {
+            if (response.status) {
+              Swal.fire({
+                icon: "success",
+                title: "¡Éxito!",
+                text: response.message,
+                showConfirmButton: false,
+                timer: 1500,
+              }).then(() => {
+                loadTfaStatus(); // Recargar el contenido
+              });
+            } else {
+              showErrorMessage(response.message);
+            }
+          },
+          error: function() {
+            showErrorMessage("Error de conexión al servidor");
+          },
+        });
+      });
     }
 
     // Función para mostrar la pantalla de configuración de 2FA
