@@ -710,22 +710,3 @@ if (!isset($range_to))
     }
   });
 </script>
-
-<!-- Script para abrir modal 2FA automáticamente si se viene de configurar_2fa_redirect.php -->
-<script>
-  $(document).ready(function() {
-    // Detectar si hay un parámetro para abrir el modal de 2FA
-    const urlParams = new URLSearchParams(window.location.search);
-    if (urlParams.has('open_2fa_modal') && urlParams.get('open_2fa_modal') === '1') {
-      // Eliminar el parámetro de la URL sin recargar la página
-      const url = new URL(window.location);
-      url.searchParams.delete('open_2fa_modal');
-      window.history.replaceState({}, '', url);
-
-      // Abrir el modal de 2FA después de un breve retraso
-      setTimeout(() => {
-        $('.config-2fa-btn').first().trigger('click');
-      }, 500);
-    }
-  });
-</script>
