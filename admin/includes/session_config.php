@@ -26,14 +26,22 @@ if (session_status() === PHP_SESSION_NONE)
     ini_set('session.use_strict_mode', 1);
     ini_set('session.use_only_cookies', 1);
 
+    // Detectar si estamos en un entorno de desarrollo
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $is_dev_environment =
+        strpos($host, 'localhost') !== false ||
+        strpos($host, '.test') !== false ||
+        strpos($host, '.dev') !== false ||
+        $host === '127.0.0.1';
+
     // Configuración de cookies específica para admin
     session_set_cookie_params([
         'lifetime' => 30 * 24 * 60 * 60,
         'path' => '/admin', // Restringir a la ruta /admin
         'domain' => '',
-        'secure' => true,
+        'secure' => !$is_dev_environment, // Desactivar secure en entornos de desarrollo
         'httponly' => true,
-        'samesite' => 'Lax'
+        'samesite' => $is_dev_environment ? 'None' : 'Lax' // Más permisivo en desarrollo
     ]);
 
     session_start();
