@@ -26,15 +26,22 @@ if (session_status() === PHP_SESSION_NONE)
     ini_set('session.use_strict_mode', 1);
     ini_set('session.use_only_cookies', 1);
 
-    // Configuración de cookies específica para admin
-    session_set_cookie_params([
+    // Configuración de cookies de sesión
+    $host = $_SERVER['HTTP_HOST'] ?? '';
+    $isDev = (bool) preg_match('/(^localhost$|\.dev$|\.test$)/i', $host);
+
+    $params = [
+        'path'     => '/admin',
+        'domain'   => '',
         'lifetime' => 30 * 24 * 60 * 60,
-        'path' => '/admin', // Restringir a la ruta /admin
-        'domain' => '',
-        'secure' => true,
-        'httponly' => true,
-        'samesite' => 'Lax'
-    ]);
+    ];
+
+    if (! $isDev)
+    {
+        $params['secure']   = true;
+        $params['httponly'] = true;
+        $params['samesite'] = 'Lax';
+    }
 
     session_start();
 }
