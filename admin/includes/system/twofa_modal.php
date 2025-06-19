@@ -1,9 +1,9 @@
 <!-- Modal para configuración 2FA -->
 <div class="modal fade" id="modal2FA" tabindex="-1" role="dialog" aria-labelledby="modal2FALabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg" role="document">
+    <div class="modal-dialog modal-dialog-scrollable" role="document">
         <div class="modal-content">
             <div class="modal-header">
-                <b class="modal-title" id="modal2FALabel">Configuración de Autenticación de Dos Factores (2FA)</b>
+                <b class="modal-title" id="modal2FALabel">Configuración de Autenticación de Dos Factores</b>
                 <button type="button" class="close" data-dismiss="modal" aria-label="Close">
                     <span aria-hidden="true">&times;</span>
                 </button>

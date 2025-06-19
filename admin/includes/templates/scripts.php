@@ -228,8 +228,6 @@ if (!isset($range_to))
       if (tfaStatus.enabled) {
         // 2FA está activado - mostrar opciones de gestión
         content = `
-                <div class="row">
-                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header text-center bg-primary">
                                 <b>Añadir Dispositivo Adicional</b>
@@ -243,9 +241,7 @@ if (!isset($range_to))
                                     <button type="submit" class="btn btn-primary btn-block">Configurar Nuevo Dispositivo</button>
                                 </form>
                             </div>
-                        </div>
                     </div>
-                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-header text-center bg-warning">
                                 <b>Códigos de Respaldo</b>
@@ -267,14 +263,11 @@ if (!isset($range_to))
                                 </form>
                             </div>
                         </div>
-                    </div>
-                </div>
             `;
       } else if (tfaStatus.hasSecret) {
         // Tiene secreto pero 2FA está desactivado - opción para reactivar
         content = `
-                <div class="row justify-content-center">
-                    <div class="col">
+                
                         <div class="alert alert-info">
                             <p>Ya tienes 2FA configurado anteriormente, pero esta <span class="badge bg-danger">desactivado</span>. Puedes reactivarlo ingresando un código de verificación generado por tu aplicación de autenticación.</p>
                         </div>
@@ -289,26 +282,20 @@ if (!isset($range_to))
                                 </form>
                             </div>
                         </div>
-                    </div>
-                </div>
             `;
       } else {
         // No tiene 2FA configurado - mostrar configuración inicial
         content = `
                 <div class="text-center mb-4">
-                    <h5>Configuración inicial de autenticación de dos factores</h5>
+                    <b>Configuración inicial de autenticación de dos factores</b>
                     <p>La autenticación de dos factores proporciona una capa adicional de seguridad para tu cuenta</p>
                 </div>
 
-                <div class="row justify-content-center">
-                    <div class="col-md-6">
                         <div class="card">
                             <div class="card-body">
                                 <button id="setupNewTfaBtn" class="btn btn-primary btn-block mb-3">Configurar 2FA</button>
                             </div>
                         </div>
-                    </div>
-                </div>
             `;
       }
 
@@ -501,11 +488,9 @@ if (!isset($range_to))
     function showDeviceSetup(secret, qrUri) {
       const setupHtml = `
             <div class="text-center mb-4">
-                <h5>Configura un dispositivo adicional</h5>
+                <b>Configura un dispositivo adicional</b>
             </div>
 
-            <div class="row justify-content-center">
-                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-info text-white">
                             <b>Escanea este código QR en tu nuevo dispositivo</b>
@@ -523,9 +508,7 @@ if (!isset($range_to))
                             </div>
                         </div>
                     </div>
-                </div>
                 
-                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-primary text-white">
                             <b>Instrucciones</b>
@@ -546,8 +529,6 @@ if (!isset($range_to))
                             </form>
                         </div>
                     </div>
-                </div>
-            </div>
         `;
 
       $("#tfa_content_container").html(setupHtml);
@@ -632,11 +613,9 @@ if (!isset($range_to))
     function showTfaSetup(secret, qrUri) {
       const setupHtml = `
             <div class="text-center mb-4">
-                <h5>Configura la autenticación de dos factores</h5>
+                <b>Configura la autenticación de dos factores</b>
             </div>
 
-            <div class="row justify-content-center">
-                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-info text-white">
                             <b>Escanea este código QR</b>
@@ -654,9 +633,7 @@ if (!isset($range_to))
                             </div>
                         </div>
                     </div>
-                </div>
                 
-                <div class="col-md-6">
                     <div class="card">
                         <div class="card-header bg-primary text-white">
                             <b>Instrucciones</b>
@@ -677,8 +654,6 @@ if (!isset($range_to))
                             </form>
                         </div>
                     </div>
-                </div>
-            </div>
         `;
 
       $("#tfa_content_container").html(setupHtml);
