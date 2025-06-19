@@ -63,17 +63,17 @@ try
 catch (Exception $e)
 {
 	$success = false;
-	error_log("Error al realizar respaldo con DB-Dumper: " . $e->getMessage());
+	error_log("Error al realizar respaldo: " . $e->getMessage());
 
 	if ($mode == 'download')
 	{
-		$_SESSION['error'] = 'Error al crear backup con DB-Dumper: ' . $e->getMessage();
+		$_SESSION['error'] = 'Error al crear backup: ' . $e->getMessage();
 		header('Location: ../../users.php');
 		exit;
 	}
 	else
 	{
-		echo 'Error al crear backup con DB-Dumper: ' . $e->getMessage();
+		echo 'Error al crear backup: ' . $e->getMessage();
 		exit;
 	}
 }
