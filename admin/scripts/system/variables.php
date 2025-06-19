@@ -114,7 +114,7 @@
                             title: 'Éxito',
                             text: response.message
                         }).then(() => {
-                            variablesTable.ajax.reload();
+                            variablesTable.ajax.reload(null, false);
                         });
                     } else {
                         Swal.fire({
@@ -162,7 +162,7 @@
                                     title: 'Éxito',
                                     text: response.message
                                 }).then(() => {
-                                    variablesTable.ajax.reload();
+                                    variablesTable.ajax.reload(null, false);
                                 });
                             } else {
                                 Swal.fire({
