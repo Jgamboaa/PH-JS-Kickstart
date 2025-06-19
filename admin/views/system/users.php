@@ -44,16 +44,17 @@ else
 
 
     <div class="modal fade" id="admin_modal">
-        <div class="modal-dialog modal-lg" role="document">
-            <form id="admin_form" enctype="multipart/form-data">
-                <div class="modal-content">
-                    <div class="modal-header">
-                        <b class="modal-title" id="admin_modal_label">Agregar/Editar Usuario</b>
-                        <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-                            <span aria-hidden="true">&times;</span>
-                        </button>
-                    </div>
-                    <div class="modal-body">
+        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <b class="modal-title" id="admin_modal_label">Agregar/Editar Usuario</b>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="admin_form" enctype="multipart/form-data">
+
                         <!-- Campos ocultos para controlar la acción y el ID del empleado -->
                         <input type="hidden" id="admin_crud" name="crud">
                         <input type="hidden" id="admin_id" name="id">
@@ -168,20 +169,20 @@ else
                                 </div>
                             </div>
                         </div>
-                    </div>
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-sm btn-default" data-dismiss="modal"><i class="fa fa-times"></i>
-                            Cerrar</button>
-                        <button type="submit" class="btn btn-sm btn-primary"><i class="fa fa-save"></i> Guardar</button>
-                    </div>
+                    </form>
                 </div>
-            </form>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal"><i class="fa fa-times"></i>
+                        Cerrar</button>
+                    <button type="submit" class="btn btn-sm btn-primary" form="admin_form"><i class="fa fa-save"></i> Guardar</button>
+                </div>
+            </div>
         </div>
     </div>
 
     <!-- Modal para mostrar códigos de respaldo -->
     <div class="modal fade" id="backup_codes_modal">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialogn modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <b class="modal-title">Códigos de respaldo</b>
