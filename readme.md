@@ -123,4 +123,40 @@ Si el instalador no puede instalar automáticamente las dependencias, puedes ins
 composer install
 ```
 
+## Migraciones de Base de Datos
+
+El sistema cuenta con un módulo de migraciones para gestionar la estructura y objetos de la base de datos:
+
+### Estructura de directorios
+
+- `/migrations/functions/` - Funciones SQL
+- `/migrations/triggers/` - Triggers SQL
+- `/migrations/procedures/` - Procedimientos almacenados
+
+### Uso del comando de migración
+
+Para ejecutar migraciones específicas, utilice el siguiente comando:
+
+```bash
+php migrations/migrate.php [tipo]
+```
+
+Donde `[tipo]` puede ser:
+
+- `functions` - Para migrar funciones SQL
+- `triggers` - Para migrar triggers de la base de datos
+- `procedures` - Para migrar procedimientos almacenados
+
+### Ejemplo:
+
+```bash
+# Migrar todas las funciones
+php migrations/migrate.php functions
+
+# Migrar todos los triggers
+php migrations/migrate.php triggers
+```
+
+Los archivos SQL deben incluir sentencias `DELIMITER` y `DROP IF EXISTS` para manejar adecuadamente la creación y actualización de objetos existentes.
+
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Jgamboaa/PH-JS-Kickstart)
