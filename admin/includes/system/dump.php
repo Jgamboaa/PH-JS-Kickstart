@@ -47,13 +47,6 @@ try
 			->addExtraOption('--events')
 			->addExtraOption('--triggers');
 	}
-	else
-	{
-		// En producción asegurarse de incluir estos elementos también
-		$dumper->addExtraOption('--routines')
-			->addExtraOption('--events')
-			->addExtraOption('--triggers');
-	}
 
 	$dumper->dumpToFile($filename);
 
