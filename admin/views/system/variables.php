@@ -92,7 +92,7 @@ else
 
     <!-- Modal unificado para Agregar/Editar Variable -->
     <div class="modal fade" id="variableModal" tabindex="-1" role="dialog" aria-labelledby="variableModalLabel" aria-hidden="true">
-        <div class="modal-dialog" role="document">
+        <div class="modal-dialog modal-dialog-scrollable" role="document">
             <div class="modal-content">
                 <div class="modal-header">
                     <b class="modal-title" id="variableModalLabel">Agregar Variable de Entorno</b>
@@ -100,8 +100,8 @@ else
                         <span aria-hidden="true">&times;</span>
                     </button>
                 </div>
-                <form id="variableForm">
-                    <div class="modal-body">
+                <div class="modal-body">
+                    <form id="variableForm">
                         <input type="hidden" id="modalOperation" value="create">
                         <div class="form-group">
                             <label for="variableName">Nombre de la Variable</label>
@@ -112,12 +112,12 @@ else
                             <label for="variableValue">Valor</label>
                             <input type="text" class="form-control" id="variableValue" placeholder="Valor de la variable">
                         </div>
-                    </div>
-                    <div class="modal-footer justify-content-between">
-                        <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
-                        <button type="submit" class="btn btn-primary btn-sm" id="saveVariableBtn">Guardar</button>
-                    </div>
-                </form>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary btn-sm" data-dismiss="modal">Cancelar</button>
+                    <button type="submit" class="btn btn-primary btn-sm" id="saveVariableBtn" form="variableForm">Guardar</button>
+                </div>
             </div>
         </div>
     </div>
