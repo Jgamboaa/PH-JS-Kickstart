@@ -1,7 +1,7 @@
 <?php
 include '../session.php';
 $mail_support = env('MAIL_SUPPORT');
-$ENV = env('APP_ENV', 'production'); // Valor por defecto 'production' si no está definido
+$ENV = env('APP_ENV');
 
 require_once __DIR__ . '/../../../vendor/autoload.php';
 
