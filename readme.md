@@ -9,6 +9,7 @@ El sistema utiliza varias bibliotecas y dependencias que se instalan automática
 - **PHPSpreadsheet (v4.2.0)**: Para la manipulación y generación de hojas de cálculo Excel, CSV y otros formatos
 - **TCPDF (v6.9.4)**: Alternativa para generación de PDF con soporte para headers/footers personalizados
 - **OTPHP (v11.3.0)**: Implementación de códigos OTP para autenticación de dos factores (2FA)
+- **DB-Dumper (v3.8.0)**: Herramienta para la exportación e importación de bases de datos
 
 ### Requisitos del servidor
 
