@@ -1,21 +1,26 @@
+<?php
+include '../../includes/session.php';
+?>
 <section class="content">
-    <div class="container-fluid">
+    <div class="container-fluid content-header">
         <div class="row mb-2">
             <div class="col-sm-6">
-                <h1>Dashboard PH&JS Kickstart</h1>
+                <h3>Bienvenid@ <strong><?php echo $user['user_firstname']; ?></strong></h3>
             </div>
         </div>
 
         <!-- Tarjeta de bienvenida -->
         <div class="row">
             <div class="col-md-12">
-                <div class="card bg-gradient-primary">
+                <div class="card">
                     <div class="card-header">
-                        <h3 class="card-title">Bienvenido al sistema</h3>
+                        <h3 class="card-title">
+                            <i class="fa fa-solid fa-duotone fa-lg fa-info-circle mr-2"></i>
+                            Información del sistema
+                        </h3>
                     </div>
                     <div class="card-body">
-                        <p class="lead">Sistema base desarrollado en PHP Puro con interface AdminLTE y Bootstrap 4.</p>
-                        <p>Usa este sistema como punto de partida para tus desarrollos personalizados.</p>
+                        <p>Este es un sistema base desarrollado en PHP Puro con interface AdminLTE y Bootstrap 4, usalo como punto de partida para tus desarrollos personalizados.</p>
                     </div>
                 </div>
             </div>
@@ -27,7 +32,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-plug mr-2"></i>
+                            <i class="fa fa-solid fa-duotone fa-lg fa-plug mr-2"></i>
                             Dependencias del sistema
                         </h3>
                     </div>
@@ -69,7 +74,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-laptop-code mr-2"></i>
+                            <i class="fa fa-solid fa-duotone fa-lg fa-laptop-code mr-2"></i>
                             Tecnologías utilizadas
                         </h3>
                     </div>
@@ -96,7 +101,7 @@
                             </div>
                             <div class="col-md-6">
                                 <div class="info-box">
-                                    <span class="info-box-icon bg-warning"><i class="fas fa-database"></i></span>
+                                    <span class="info-box-icon bg-warning"><i class="fa fa-solid fa-duotone fa-lg fa-database"></i></span>
                                     <div class="info-box-content">
                                         <span class="info-box-text">Base de datos</span>
                                         <span class="info-box-number">MariaDB</span>
@@ -116,7 +121,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-server mr-2"></i>
+                            <i class="fa fa-solid fa-duotone fa-lg fa-server mr-2"></i>
                             Requisitos del servidor
                         </h3>
                     </div>
@@ -155,7 +160,7 @@
                 <div class="card">
                     <div class="card-header">
                         <h3 class="card-title">
-                            <i class="fas fa-link mr-2"></i>
+                            <i class="fa fa-solid fa-duotone fa-lg fa-link mr-2"></i>
                             Enlaces útiles
                         </h3>
                     </div>
@@ -168,12 +173,12 @@
                             </div>
                             <div class="col-md-4">
                                 <a href="https://deepwiki.com/Jgamboaa/PH-JS-Kickstart" class="btn btn-block btn-outline-info" target="_blank">
-                                    <i class="fas fa-book mr-2"></i> Documentación (DeepWiki)
+                                    <i class="fa fa-solid fa-duotone fa-lg fa-book mr-2"></i> Documentación (DeepWiki)
                                 </a>
                             </div>
                             <div class="col-md-4">
                                 <button class="btn btn-block btn-outline-success" onclick="window.location.href='../migrations/'">
-                                    <i class="fas fa-database mr-2"></i> Gestionar Migraciones
+                                    <i class="fa fa-solid fa-duotone fa-lg fa-database mr-2"></i> Gestionar Migraciones
                                 </button>
                             </div>
                         </div>

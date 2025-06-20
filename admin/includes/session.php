@@ -128,6 +128,8 @@ $stmt = $conn->prepare($sql);
 $stmt->execute([$_SESSION['admin']]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
+
+
 // Verificar si el usuario tiene MFA requerido pero no habilitado
 if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
 {
