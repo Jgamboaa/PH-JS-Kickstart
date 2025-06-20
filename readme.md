@@ -1,5 +1,15 @@
 # PH&JS Kickstart
 
+## Características principales
+
+- **Autenticación segura**: Sistema de login con protección CSRF y seguridad avanzada
+- **Autenticación de dos factores (2FA)**: Implementada con códigos TOTP y códigos de respaldo
+- **Panel de administración**: Interfaz moderna basada en AdminLTE y Bootstrap 4
+- **Gestión de variables de entorno**: Interfaz para modificar configuraciones sin editar archivos
+- **Respaldos de base de datos**: Funciones para exportar y enviar respaldos por correo
+- **Migraciones de base de datos**: Sistema para gestionar cambios en la estructura de la BD
+- **Correos transaccionales**: Configuración SMTP para envío de notificaciones
+
 ## Dependencias del sistema
 
 El sistema utiliza varias bibliotecas y dependencias que se instalan automáticamente a través de Composer:
@@ -123,6 +133,17 @@ Si el instalador no puede instalar automáticamente las dependencias, puedes ins
 ```bash
 composer install
 ```
+
+## Configuración de variables de entorno
+El sistema utiliza un archivo .env para gestionar la configuración. Las principales variables son:
+
+- DB_HOST, DB_USER, DB_PASS, DB_NAME: Configuración de la base de datos
+- MAIL_HOST, MAIL_PORT, MAIL_USERNAME, MAIL_PASSWORD: Configuración del servidor de correo
+- MAIL_ENCRYPTION: Tipo de cifrado para el correo (tls, ssl)
+- MAIL_SUPPORT: Dirección de correo para soporte técnico
+- APP_NAME, APP_TIMEZONE: Configuración general de la aplicación
+
+Estas variables pueden ser modificadas desde el panel de administración en Sistema > Variables de Entorno.
 
 ## Migraciones de Base de Datos
 
