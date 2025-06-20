@@ -64,6 +64,10 @@ include '../../includes/session.php';
                                         OTPHP
                                         <span class="badge badge-primary badge-pill">v11.3.0</span>
                                     </li>
+                                    <li class="list-group-item d-flex justify-content-between align-items-center">
+                                        DB-Dumper
+                                        <span class="badge badge-primary badge-pill">v3.8.0</span>
+                                    </li>
                                 </ul>
                             </div>
                         </div>
