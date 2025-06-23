@@ -1,3 +1,4 @@
 admin/includes/sessions/
 .env
 vendor/
+error.log

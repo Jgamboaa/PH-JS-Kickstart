@@ -3,6 +3,12 @@ require_once __DIR__ . '/session_config.php';
 require_once dirname(__DIR__) . '/../config/db_conn.php';
 require_once __DIR__ . '/security_functions.php';
 date_default_timezone_set(env('APP_TIMEZONE'));
+$isDebug = env('APP_DEBUG') === 'true';
+error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
+ini_set('display_errors', $isDebug ? 1 : 0);
+ini_set('display_startup_errors', $isDebug ? 1 : 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../../error.log');
 
 // Verificar y renovar la sesión
 function checkSession()
@@ -170,9 +176,3 @@ $developer_name = $data['developer_name'];
 $photoPath = '../images/admins/' . $user['photo'];
 $defaultPhoto = '../images/admins/profile.png';
 $photoSrc = (!empty($user['photo']) && file_exists($photoPath)) ? $photoPath : $defaultPhoto;
-
-$isDebug = env('APP_DEBUG') === 'true';
-error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
-ini_set('display_errors', $isDebug ? 1 : 0);
-ini_set('display_startup_errors', $isDebug ? 1 : 0);
-ini_set('log_errors', 1);

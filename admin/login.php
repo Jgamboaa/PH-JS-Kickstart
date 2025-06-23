@@ -3,6 +3,13 @@ require_once 'includes/session_config.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 require_once 'includes/security_functions.php';
 $mail_support = env('MAIL_SUPPORT');
+$isDebug = env('APP_DEBUG') === 'true';
+error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
+ini_set('display_errors', $isDebug ? 1 : 0);
+ini_set('display_startup_errors', $isDebug ? 1 : 0);
+ini_set('log_errors', 1);
+ini_set('error_log', __DIR__ . '/../error.log');
+
 header('Content-Type: application/json');
 $response = ['status' => false, 'message' => '', 'redirect' => false];
 
