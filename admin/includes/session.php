@@ -17,29 +17,59 @@ function checkSession()
 	$max_lifetime = 30 * 24 * 60 * 60; // 30 días en segundos
 	$current_time = time();
 
-	// Verificar posible secuestro de sesión - Modificado para permitir múltiples dispositivos
+	// Intentar recuperar la sesión desde la cookie persistente si la sesión actual no existe
+	if (!isset($_SESSION['admin']) && isset($_COOKIE['persistent_session']))
+	{
+		$admin_id = filter_var($_COOKIE['persistent_session'], FILTER_SANITIZE_NUMBER_INT);
+		if ($admin_id)
+		{
+			$stmt = $conn->prepare("SELECT id FROM admin WHERE id = ?");
+			$stmt->execute([$admin_id]);
+			if ($stmt->rowCount() > 0)
+			{
+				$_SESSION['admin'] = $admin_id;
+				$_SESSION['last_activity'] = $current_time;
+				// Guardamos la IP actual pero no la usamos para validaciones
+				$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
+				$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
+				$_SESSION['created'] = $current_time;
+
+				// Renovar la cookie persistente
+				setcookie(
+					'persistent_session',
+					$admin_id,
+					[
+						'expires' => time() + $max_lifetime,
+						'path' => '/',
+						'domain' => '',
+						'secure' => isset($_SERVER['HTTPS']),
+						'httponly' => true,
+						'samesite' => 'Lax'
+					]
+				);
+			}
+		}
+	}
+
+	// CAMBIO: Actualizamos la IP y User-Agent para fines de auditoría, pero no validamos
 	if (isset($_SESSION['ip_address']) && $_SESSION['ip_address'] !== $_SERVER['REMOTE_ADDR'])
 	{
-		// Ya no cerramos la sesión, solo actualizamos el valor
-		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
-
-		// Opcional: Registrar el cambio de IP para auditoría
+		// Registrar el cambio de IP para auditoría
 		if (isset($_SESSION['admin']))
 		{
 			logDeviceChange($_SESSION['admin'], 'ip_change', $_SESSION['ip_address'], $_SERVER['REMOTE_ADDR']);
 		}
+		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
 	}
 
 	if (isset($_SESSION['user_agent']) && $_SESSION['user_agent'] !== $_SERVER['HTTP_USER_AGENT'])
 	{
-		// Ya no cerramos la sesión, solo actualizamos el valor
-		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
-
-		// Opcional: Registrar el cambio de user-agent para auditoría
+		// Registrar el cambio de user-agent para auditoría
 		if (isset($_SESSION['admin']))
 		{
 			logDeviceChange($_SESSION['admin'], 'user_agent_change', $_SESSION['user_agent'], $_SERVER['HTTP_USER_AGENT']);
 		}
+		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
 	}
 
 	if (
@@ -50,6 +80,8 @@ function checkSession()
 		// La sesión ha expirado
 		session_unset();
 		session_destroy();
+		// También eliminar la cookie persistente
+		setcookie('persistent_session', '', time() - 3600, '/');
 		header('location: ../admin/index.php?error=session_expired');
 		exit();
 	}
@@ -57,16 +89,23 @@ function checkSession()
 	// Renovar el tiempo de la sesión
 	$_SESSION['last_activity'] = $current_time;
 
-	// Regenerar el ID de sesión periódicamente (cada 30 minutos)
+	// Regenerar el ID de sesión periódicamente (cada 12 horas en lugar de 30 minutos)
 	if (!isset($_SESSION['created']))
 	{
 		$_SESSION['created'] = time();
 	}
-	else if (time() - $_SESSION['created'] > 1800)
+	else if (time() - $_SESSION['created'] > 43200) // 12 horas
 	{
+		// Guardar el ID admin antes de regenerar
+		$admin_id = $_SESSION['admin'] ?? null;
+
 		session_regenerate_id(true);
-		$_SESSION['created'] = time();
-		// Actualizar tiempo de regeneración
+
+		// Asegurar que el ID admin sigue presente si existía
+		if ($admin_id)
+		{
+			$_SESSION['admin'] = $admin_id;
+		}
 		$_SESSION['created'] = time();
 	}
 
@@ -85,6 +124,23 @@ function checkSession()
 	if (!isset($_SESSION['device_token']))
 	{
 		$_SESSION['device_token'] = bin2hex(random_bytes(16));
+	}
+
+	// Renovar la cookie persistente si existe
+	if (isset($_SESSION['admin']) && isset($_COOKIE['persistent_session']))
+	{
+		setcookie(
+			'persistent_session',
+			$_SESSION['admin'],
+			[
+				'expires' => time() + $max_lifetime,
+				'path' => '/',
+				'domain' => '',
+				'secure' => isset($_SERVER['HTTPS']),
+				'httponly' => true,
+				'samesite' => 'Lax'
+			]
+		);
 	}
 
 	// Actualizar la última actividad en la tabla active_sessions si hay un usuario logueado
