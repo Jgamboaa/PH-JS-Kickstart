@@ -1,4 +1,7 @@
 <?php
+// Importar RedBeanPHP
+use RedBeanPHP\R as R;
+
 class UserController
 {
     private $conn;
@@ -12,41 +15,31 @@ class UserController
     {
         try
         {
-            $usuario = $data['usuario'];
-            $password = password_hash($data['password'], PASSWORD_DEFAULT);
-            $firstname = $data['firstname'];
-            $lastname = $data['lastname'];
-            $gender = $data['gender'];
-            $roles_ids = isset($data['roles_ids']) && is_array($data['roles_ids']) ?
+            // Crear un bean de usuario (admin)
+            $user = R::dispense('admin');
+            $user->username = $data['usuario'];
+            $user->password = password_hash($data['password'], PASSWORD_DEFAULT);
+            $user->user_firstname = $data['firstname'];
+            $user->user_lastname = $data['lastname'];
+            $user->admin_gender = $data['gender'];
+            $user->roles_ids = isset($data['roles_ids']) && is_array($data['roles_ids']) ?
                 implode(",", $data['roles_ids']) : "";
-            $today = date("Y-m-d");
-            // Añadir campo tfa_required
-            $tfa_required = isset($data['tfa_required']) ? (int)$data['tfa_required'] : 0;
-
+            $user->created_on = date("Y-m-d");
+            $user->tfa_required = isset($data['tfa_required']) ? (int)$data['tfa_required'] : 0;
+            
             // Manejar subida de foto
-            $new_filename = $this->handlePhotoUpload($files, $usuario);
-
-            $sql = "INSERT INTO admin (username, password, user_firstname, user_lastname, photo, created_on, roles_ids, admin_gender, tfa_required) 
-                    VALUES (:usuario, :password, :firstname, :lastname, :new_filename, :today, :roles_ids, :gender, :tfa_required)";
-
-            $stmt = $this->conn->prepare($sql);
-
-            $stmt->bindParam(':usuario', $usuario);
-            $stmt->bindParam(':password', $password);
-            $stmt->bindParam(':firstname', $firstname);
-            $stmt->bindParam(':lastname', $lastname);
-            $stmt->bindParam(':new_filename', $new_filename);
-            $stmt->bindParam(':today', $today);
-            $stmt->bindParam(':roles_ids', $roles_ids);
-            $stmt->bindParam(':gender', $gender);
-            $stmt->bindParam(':tfa_required', $tfa_required);
-
-            if ($stmt->execute())
-            {
+            $user->photo = $this->handlePhotoUpload($files, $data['usuario']);
+            
+            // Guardar el usuario
+            $id = R::store($user);
+            
+            if ($id) {
                 return ['status' => true, 'message' => 'Usuario agregado correctamente'];
             }
+            
+            return ['status' => false, 'message' => 'Error al agregar usuario'];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -56,92 +49,43 @@ class UserController
     {
         try
         {
-            $id = $data['id'];
-            $username = $data['usuario'];
-            $new_password = $data['password'];
-            $firstname = $data['firstname'];
-            $lastname = $data['lastname'];
-            $gender = $data['gender'];
-            $roles_ids = isset($data['roles_ids']) && is_array($data['roles_ids']) ?
-                implode(",", $data['roles_ids']) : "";
-            // Añadir campo tfa_required
-            $tfa_required = isset($data['tfa_required']) ? (int)$data['tfa_required'] : 0;
-
-            // Obtener información actual del usuario
-            $sql_user = "SELECT * FROM admin WHERE id = :id";
-            $stmt_user = $this->conn->prepare($sql_user);
-            $stmt_user->bindParam(':id', $id);
-            $stmt_user->execute();
-            $urow = $stmt_user->fetch();
-
+            // Cargar el usuario existente
+            $user = R::load('admin', $data['id']);
+            
+            if (!$user->id) {
+                return ['status' => false, 'message' => 'Usuario no encontrado'];
+            }
+            
             // Verificar si la contraseña ha cambiado
-            $password_hashed = $new_password == $urow['password'] ?
-                $urow['password'] : password_hash($new_password, PASSWORD_DEFAULT);
-
+            $user->password = $data['password'] == $user->password ?
+                $user->password : password_hash($data['password'], PASSWORD_DEFAULT);
+                
+            // Actualizar propiedades
+            $user->username = $data['usuario'];
+            $user->user_firstname = $data['firstname'];
+            $user->user_lastname = $data['lastname'];
+            $user->admin_gender = $data['gender'];
+            $user->roles_ids = isset($data['roles_ids']) && is_array($data['roles_ids']) ?
+                implode(",", $data['roles_ids']) : "";
+            $user->tfa_required = isset($data['tfa_required']) ? (int)$data['tfa_required'] : 0;
+            
             // Manejar subida de foto
-            $photo_sql = '';
             $filename = $files['photo']['name'];
-            if (!empty($filename))
-            {
+            if (!empty($filename)) {
                 // Eliminar foto anterior si existe
-                if ($urow['photo'] && file_exists('../../../images/admins/' . $urow['photo']))
-                {
-                    unlink('../../../images/admins/' . $urow['photo']);
+                if ($user->photo && file_exists('../../../images/admins/' . $user->photo)) {
+                    unlink('../../../images/admins/' . $user->photo);
                 }
                 // Subir nueva foto
-                $new_filename = $this->handlePhotoUpload($files, $username);
-                $photo_sql = ", photo = :photo";
+                $user->photo = $this->handlePhotoUpload($files, $data['usuario']);
             }
-
-            // Preparar SQL según si hay foto nueva o no
-            if (!empty($photo_sql))
-            {
-                $sql = "UPDATE admin SET 
-                        username = :username, 
-                        password = :password, 
-                        user_firstname = :firstname, 
-                        user_lastname = :lastname,
-                        roles_ids = :roles_ids, 
-                        admin_gender = :gender,
-                        tfa_required = :tfa_required,
-                        photo = :photo
-                        WHERE id = :id";
-            }
-            else
-            {
-                $sql = "UPDATE admin SET 
-                        username = :username, 
-                        password = :password, 
-                        user_firstname = :firstname, 
-                        user_lastname = :lastname,
-                        roles_ids = :roles_ids, 
-                        admin_gender = :gender,
-                        tfa_required = :tfa_required
-                        WHERE id = :id";
-            }
-
-            $stmt = $this->conn->prepare($sql);
-
-            $stmt->bindParam(':username', $username);
-            $stmt->bindParam(':password', $password_hashed);
-            $stmt->bindParam(':firstname', $firstname);
-            $stmt->bindParam(':lastname', $lastname);
-            $stmt->bindParam(':roles_ids', $roles_ids);
-            $stmt->bindParam(':gender', $gender);
-            $stmt->bindParam(':tfa_required', $tfa_required);
-            $stmt->bindParam(':id', $id);
-
-            if (!empty($photo_sql))
-            {
-                $stmt->bindParam(':photo', $new_filename);
-            }
-
-            if ($stmt->execute())
-            {
-                return ['status' => true, 'message' => 'Perfil de usuario actualizado correctamente'];
-            }
+            
+            // Guardar cambios
+            R::store($user);
+            
+            return ['status' => true, 'message' => 'Perfil de usuario actualizado correctamente'];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -151,56 +95,42 @@ class UserController
     {
         try
         {
-            $curr_password = $data['curr_password'];
-            $password = $data['password'];
-            $color_mode = $data['color_mode'];
-            $username = $current_user['username'];
-
             // Verificar contraseña actual
-            if (!password_verify($curr_password, $current_user['password']))
-            {
+            if (!password_verify($data['curr_password'], $current_user['password'])) {
                 return ['status' => false, 'message' => 'Contraseña actual incorrecta'];
             }
-
+            
+            // Cargar el usuario
+            $user = R::load('admin', $current_user['id']);
+            
+            if (!$user->id) {
+                return ['status' => false, 'message' => 'Usuario no encontrado'];
+            }
+            
+            // Verificar si la contraseña ha cambiado
+            $user->password = $data['password'] == $current_user['password'] ?
+                $current_user['password'] : password_hash($data['password'], PASSWORD_DEFAULT);
+                
+            $user->color_mode = $data['color_mode'];
+            
             // Manejar subida de foto
-            $filename = $current_user['photo'];
-            if (!empty($files['photo']['name']))
-            {
+            if (!empty($files['photo']['name'])) {
                 // Eliminar foto anterior si existe
-                if (file_exists('../../../images/admins/' . $current_user['photo']) && !empty($current_user['photo']))
-                {
+                if (file_exists('../../../images/admins/' . $current_user['photo']) && !empty($current_user['photo'])) {
                     unlink('../../../images/admins/' . $current_user['photo']);
                 }
                 $ext = pathinfo($files['photo']['name'], PATHINFO_EXTENSION);
-                $filename = 'photo_' . $username . '.' . $ext;
+                $filename = 'photo_' . $current_user['username'] . '.' . $ext;
                 move_uploaded_file($files['photo']['tmp_name'], '../../../images/admins/' . $filename);
+                $user->photo = $filename;
             }
-
-            // Verificar si la contraseña ha cambiado
-            if ($password == $current_user['password'])
-            {
-                $password = $current_user['password'];
-            }
-            else
-            {
-                $password = password_hash($password, PASSWORD_DEFAULT);
-            }
-
-            $sql = "UPDATE admin SET password = :password, photo = :filename, color_mode = :color_mode 
-                    WHERE id = :user_id";
-
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':password', $password);
-            $stmt->bindParam(':filename', $filename);
-            $stmt->bindParam(':color_mode', $color_mode);
-            $stmt->bindParam(':user_id', $current_user['id']);
-
-            if ($stmt->execute())
-            {
-                return ['status' => true, 'message' => 'Perfil actualizado correctamente'];
-            }
+            
+            // Guardar cambios
+            R::store($user);
+            
+            return ['status' => true, 'message' => 'Perfil actualizado correctamente'];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => 'Error al actualizar: ' . $e->getMessage()];
         }
@@ -211,35 +141,28 @@ class UserController
         try
         {
             // No permitir que un usuario se elimine a sí mismo
-            if ($id == $current_user_id)
-            {
+            if ($id == $current_user_id) {
                 return ['status' => false, 'message' => 'No puedes eliminar tu propio usuario'];
             }
-
-            // Obtener información del usuario
-            $sql = "SELECT * FROM admin WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
-            $row = $stmt->fetch();
-
+            
+            // Cargar el usuario
+            $user = R::load('admin', $id);
+            
+            if (!$user->id) {
+                return ['status' => false, 'message' => 'Usuario no encontrado'];
+            }
+            
             // Eliminar foto si existe
-            if ($row['photo'] && file_exists('../../../images/admins/' . $row['photo']))
-            {
-                unlink('../../../images/admins/' . $row['photo']);
+            if ($user->photo && file_exists('../../../images/admins/' . $user->photo)) {
+                unlink('../../../images/admins/' . $user->photo);
             }
-
+            
             // Eliminar usuario
-            $sql = "DELETE FROM admin WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':id', $id);
-
-            if ($stmt->execute())
-            {
-                return ['status' => true, 'message' => 'Usuario eliminado correctamente'];
-            }
+            R::trash($user);
+            
+            return ['status' => true, 'message' => 'Usuario eliminado correctamente'];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -249,21 +172,17 @@ class UserController
     {
         try
         {
-            $sql = "SELECT *, tfa_enabled, tfa_required FROM admin WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
-
-            if ($stmt->rowCount() > 0)
-            {
-                return $stmt->fetch();
-            }
-            else
-            {
+            // Cargar el usuario por ID
+            $user = R::load('admin', $id);
+            
+            if ($user->id) {
+                // Convertir el bean a un array asociativo
+                return $user->export();
+            } else {
                 return ['status' => false, 'message' => 'Usuario no encontrado'];
             }
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -275,65 +194,62 @@ class UserController
         {
             // Obtener todos los roles para mostrar sus nombres
             $roles_map = $this->getAllRoles();
-
-            $sql = "SELECT * FROM admin WHERE id != 1";
-            if ($current_user_id == 1)
-            {
-                $sql = "SELECT * FROM admin";
+            
+            // Obtener todos los usuarios
+            $users = R::findAll('admin');
+            
+            // Filtrar usuarios si no es el admin principal
+            if ($current_user_id != 1) {
+                $users = R::find('admin', ' id != 1 ');
             }
-
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
+            
             $data = [];
-
-            while ($row = $stmt->fetch())
-            {
-                $photoPath = "../../../images/admins/" . $row['photo'];
-                $photoSrc = (file_exists($photoPath) && !empty($row['photo'])) ?
+            foreach ($users as $user) {
+                $photoPath = "../../../images/admins/" . $user->photo;
+                $photoSrc = (file_exists($photoPath) && !empty($user->photo)) ?
                     $photoPath : "../../../images/admins/profile.png";
-
+                
                 $acciones = '
-                    <button class="btn btn-sm btn-success edit" data-id="' . $row['id'] . '">
+                    <button class="btn btn-sm btn-success edit" data-id="' . $user->id . '">
                         <i class="fa-duotone fa-solid fa-pen fa-lg"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger delete" data-id="' . $row['id'] . '">
+                    <button class="btn btn-sm btn-danger delete" data-id="' . $user->id . '">
                         <i class="fa-duotone fa-solid fa-trash-xmark fa-lg"></i>
                     </button>
                 ';
-
+                
                 // Añadir botones para gestionar 2FA
-                if ($current_user_id != $row['id'])
-                { // No mostrar para el usuario actual
+                if ($current_user_id != $user->id) {
                     $acciones .= '
-                        <button class="btn btn-sm btn-info reset-2fa" data-id="' . $row['id'] . '" title="Restablecer 2FA">
+                        <button class="btn btn-sm btn-info reset-2fa" data-id="' . $user->id . '" title="Restablecer 2FA">
                             <i class="fa-duotone fa-solid fa-shield-check fa-lg"></i>
                         </button>
-                        <button class="btn btn-sm btn-warning new-backup-codes" data-id="' . $row['id'] . '" title="Generar códigos de respaldo">
+                        <button class="btn btn-sm btn-warning new-backup-codes" data-id="' . $user->id . '" title="Generar códigos de respaldo">
                             <i class="fa-duotone fa-solid fa-key fa-lg"></i>
                         </button>
                     ';
                 }
-
-                $ultimo_login = !empty($row['last_login']) ?
-                    date('d/m/Y - h:i:s A', strtotime($row['last_login'])) : 'No disponible';
-
+                
+                $ultimo_login = !empty($user->last_login) ?
+                    date('d/m/Y - h:i:s A', strtotime($user->last_login)) : 'No disponible';
+                
                 // Procesar roles
-                $roles_mostrados = $this->formatUserRoles($row['roles_ids'], $roles_map);
-
+                $roles_mostrados = $this->formatUserRoles($user->roles_ids, $roles_map);
+                
                 // Estado MFA
-                $mfa_status = $row['tfa_enabled'] ?
+                $mfa_status = $user->tfa_enabled ?
                     '<span class="badge badge-success">Activado</span>' :
                     '<span class="badge badge-danger">Desactivado</span>';
-
+                
                 // MFA Requerido
-                $mfa_required = $row['tfa_required'] ?
+                $mfa_required = $user->tfa_required ?
                     '<span class="badge badge-primary">Obligatorio</span>' :
                     '<span class="badge badge-secondary">Opcional</span>';
-
+                
                 $data[] = [
                     'foto' => '<img src="' . $photoSrc . '" class="img-circle" width="40px" height="40px" loading="lazy">',
-                    'nombre' => $row['user_firstname'] . ' ' . $row['user_lastname'],
-                    'correo' => $row['username'],
+                    'nombre' => $user->user_firstname . ' ' . $user->user_lastname,
+                    'correo' => $user->username,
                     'roles' => $roles_mostrados,
                     'mfa_status' => $mfa_status,
                     'mfa_required' => $mfa_required,
@@ -341,10 +257,10 @@ class UserController
                     'acciones' => $acciones
                 ];
             }
-
+            
             return ['data' => $data];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -354,19 +270,17 @@ class UserController
     {
         try
         {
-            $roles_sql = "SELECT id, nombre FROM roles";
-            $stmt = $this->conn->prepare($roles_sql);
-            $stmt->execute();
+            // Obtener todos los roles usando RedBeanPHP
+            $roles = R::findAll('roles');
             $roles_map = [];
-
-            while ($role = $stmt->fetch())
-            {
-                $roles_map[$role['id']] = $role['nombre'];
+            
+            foreach ($roles as $role) {
+                $roles_map[$role->id] = $role->nombre;
             }
-
+            
             return $roles_map;
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return [];
         }
@@ -432,19 +346,24 @@ class UserController
     {
         try
         {
-            $sql = "UPDATE admin SET tfa_required = ? WHERE id = ?";
-            $stmt = $this->conn->prepare($sql);
-            if ($stmt->execute([(int)$required, $userId]))
-            {
-                return [
-                    'status' => true,
-                    'message' => 'Estado de 2FA requerido actualizado correctamente',
-                    'required' => (int)$required
-                ];
+            // Cargar el usuario
+            $user = R::load('admin', $userId);
+            
+            if (!$user->id) {
+                return ['status' => false, 'message' => 'Usuario no encontrado'];
             }
-            return ['status' => false, 'message' => 'Error al actualizar el estado de 2FA requerido'];
+            
+            // Actualizar el estado de 2FA requerido
+            $user->tfa_required = (int)$required;
+            R::store($user);
+            
+            return [
+                'status' => true,
+                'message' => 'Estado de 2FA requerido actualizado correctamente',
+                'required' => (int)$required
+            ];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -459,15 +378,22 @@ class UserController
     {
         try
         {
-            $sql = "UPDATE admin SET tfa_enabled = 0, tfa_secret = NULL, tfa_backup_codes = NULL WHERE id = ?";
-            $stmt = $this->conn->prepare($sql);
-            if ($stmt->execute([$userId]))
-            {
-                return ['status' => true, 'message' => 'MFA restablecido correctamente'];
+            // Cargar el usuario
+            $user = R::load('admin', $userId);
+            
+            if (!$user->id) {
+                return ['status' => false, 'message' => 'Usuario no encontrado'];
             }
-            return ['status' => false, 'message' => 'Error al restablecer el MFA'];
+            
+            // Restablecer MFA
+            $user->tfa_enabled = 0;
+            $user->tfa_secret = NULL;
+            $user->tfa_backup_codes = NULL;
+            R::store($user);
+            
+            return ['status' => true, 'message' => 'MFA restablecido correctamente'];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -483,22 +409,26 @@ class UserController
         try
         {
             require_once dirname(__DIR__, 2) . '/includes/functions/2fa_functions.php';
-
+            
+            // Cargar el usuario
+            $user = R::load('admin', $userId);
+            
+            if (!$user->id) {
+                return ['status' => false, 'message' => 'Usuario no encontrado'];
+            }
+            
             // Generar nuevos códigos
             $backupCodes = generateBackupCodes();
-
+            
             // Guardar los nuevos códigos
-            $sql = "UPDATE admin SET tfa_backup_codes = ? WHERE id = ?";
-            $stmt = $this->conn->prepare($sql);
-            if ($stmt->execute([json_encode($backupCodes), $userId]))
-            {
-                return [
-                    'status' => true,
-                    'message' => 'Códigos de respaldo generados correctamente',
-                    'backup_codes' => $backupCodes
-                ];
-            }
-            return ['status' => false, 'message' => 'Error al generar códigos de respaldo'];
+            $user->tfa_backup_codes = json_encode($backupCodes);
+            R::store($user);
+            
+            return [
+                'status' => true,
+                'message' => 'Códigos de respaldo generados correctamente',
+                'backup_codes' => $backupCodes
+            ];
         }
         catch (Exception $e)
         {
