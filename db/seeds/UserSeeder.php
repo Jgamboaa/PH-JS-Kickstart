@@ -27,7 +27,7 @@ class UserSeeder extends AbstractSeed
                 'created_on' => date('Y-m-d'),
                 'roles_ids' => '1',
                 'admin_gender' => '0',
-                'admin_estado' => 1,
+                'admin_estado' => 0,
                 'tfa_enabled' => 0,
                 'tfa_required' => 0
             ])
