@@ -7,9 +7,10 @@ $user = env('DB_USER');
 $pass = env('DB_PASS');
 $db   = env('DB_NAME');
 $port = env('DB_PORT', '3306'); // Puerto por defecto para MySQL
+$charset = env('DB_CHARSET', 'utf8mb4'); // Charset por defecto para MySQL
 
 // Construir el DSN de la conexión
-$dsn = "mysql:host=$host;dbname=$db;charset=utf8;port=$port";
+$dsn = "mysql:host=$host;dbname=$db;charset=$charset;port=$port";
 
 // Opciones para la conexión PDO
 $options = [
