@@ -1,4 +1,7 @@
 <?php
+// Importar RedBeanPHP
+use RedBeanPHP\R as R;
+
 class RoleController
 {
     private $conn;
@@ -6,24 +9,26 @@ class RoleController
     public function __construct($conn)
     {
         $this->conn = $conn;
+        // RedBeanPHP ya está configurado en db_conn.php, así que no es necesario inicializarlo aquí
     }
 
     public function createRole($data)
     {
         try
         {
-            $nombre = $data['nombre'];
+            // Crear un bean de rol
+            $role = R::dispense('roles');
+            $role->nombre = $data['nombre'];
 
-            $sql = "INSERT INTO roles (nombre) VALUES (:nombre)";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':nombre', $nombre);
+            // Guardar el bean y obtener el ID
+            $id = R::store($role);
 
-            if ($stmt->execute())
+            if ($id)
             {
                 return ['status' => true, 'message' => 'Rol añadido'];
             }
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -33,20 +38,23 @@ class RoleController
     {
         try
         {
-            $id = $data['id'];
-            $nombre = $data['nombre'];
+            // Cargar el rol existente
+            $role = R::load('roles', $data['id']);
 
-            $sql = "UPDATE roles SET nombre = :nombre WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':nombre', $nombre);
-            $stmt->bindParam(':id', $id);
-
-            if ($stmt->execute())
+            if (!$role->id)
             {
-                return ['status' => true, 'message' => 'Rol actualizado'];
+                return ['status' => false, 'message' => 'Rol no encontrado'];
             }
+
+            // Actualizar propiedades
+            $role->nombre = $data['nombre'];
+
+            // Guardar cambios
+            R::store($role);
+
+            return ['status' => true, 'message' => 'Rol actualizado'];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -56,14 +64,18 @@ class RoleController
     {
         try
         {
-            $sql = "SELECT * FROM roles WHERE id = :id";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->bindParam(':id', $id);
-            $stmt->execute();
+            // Cargar el rol por ID
+            $role = R::load('roles', $id);
 
-            return $stmt->fetch();
+            if (!$role->id)
+            {
+                return null;
+            }
+
+            // Convertir el bean a un array asociativo
+            return $role->export();
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
@@ -73,23 +85,22 @@ class RoleController
     {
         try
         {
-            $sql = "SELECT * FROM roles";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
+            // Obtener todos los roles
+            $roles = R::findAll('roles');
 
             $data = [];
-            while ($row = $stmt->fetch())
+            foreach ($roles as $role)
             {
                 $data[] = [
-                    'id' => $row['id'],
-                    'nombre' => $row['nombre'],
-                    'actions' => '<button class="btn btn-success btn-sm edit-btn" data-id="' . $row['id'] . '"><i class="fa-duotone fa-solid fa-pen fa-lg"></i></button>'
+                    'id' => $role->id,
+                    'nombre' => $role->nombre,
+                    'actions' => '<button class="btn btn-success btn-sm edit-btn" data-id="' . $role->id . '"><i class="fa-duotone fa-solid fa-pen fa-lg"></i></button>'
                 ];
             }
 
             return ['data' => $data];
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return ['status' => false, 'message' => $e->getMessage()];
         }
