@@ -1,5 +1,4 @@
 <?php
-// admin/includes/components/datatable.php
 function renderDataTable($options = [])
 {
     $defaults = [

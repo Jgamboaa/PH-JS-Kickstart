@@ -1,5 +1,4 @@
 <?php
-// admin/includes/components/cards.php
 function renderCard($options = [])
 {
     $defaults = [

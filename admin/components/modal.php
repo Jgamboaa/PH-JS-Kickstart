@@ -1,6 +1,4 @@
 <?php
-// admin/includes/components/form_fields.php
-
 function renderModal(array $options = [])
 {
     // 1. Defaults
