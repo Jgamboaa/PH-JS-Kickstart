@@ -1,4 +1,7 @@
 <?php
+// Importar RedBeanPHP
+use RedBeanPHP\R as R;
+
 class CompanyController
 {
     private $conn;
@@ -12,26 +15,20 @@ class CompanyController
     {
         try
         {
-            // Preparar la consulta SQL con solo los campos existentes en la nueva estructura
-            $sql = "UPDATE company_data SET
-                company_name = :company_name,
-                company_name_short = :company_name_short,
-                app_name = :app_name,
-                app_version = :app_version,
-                developer_name = :developer_name
-                WHERE id = 1";
+            // Cargar el registro de la empresa (siempre ID=1)
+            $company = R::load('company_data', 1);
 
-            $stmt = $this->conn->prepare($sql);
+            // Asignar los valores desde los datos recibidos
+            $company->company_name = $data['company_name'];
+            $company->company_name_short = $data['company_name_short'];
+            $company->app_name = $data['app_name'];
+            $company->app_version = $data['app_version'];
+            $company->developer_name = $data['developer_name'];
 
-            // Vincular parámetros - solo los campos que existen en la nueva estructura
-            $stmt->bindParam(':company_name', $data['company_name']);
-            $stmt->bindParam(':company_name_short', $data['company_name_short']);
-            $stmt->bindParam(':app_name', $data['app_name']);
-            $stmt->bindParam(':app_version', $data['app_version']);
-            $stmt->bindParam(':developer_name', $data['developer_name']);
+            // Guardar los cambios
+            $id = R::store($company);
 
-            // Ejecutar la consulta
-            if ($stmt->execute())
+            if ($id)
             {
                 return [
                     'status' => 'success',
@@ -46,7 +43,7 @@ class CompanyController
                 ];
             }
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return [
                 'status' => 'error',
@@ -59,13 +56,22 @@ class CompanyController
     {
         try
         {
-            $sql = "SELECT * FROM company_data WHERE id = 1";
-            $stmt = $this->conn->prepare($sql);
-            $stmt->execute();
+            // Cargar el registro de la empresa (siempre ID=1)
+            $company = R::load('company_data', 1);
 
-            return $stmt->fetch();
+            // Si no existe, devolver un error
+            if (!$company->id)
+            {
+                return [
+                    'status' => 'error',
+                    'message' => 'No se encontró información de la empresa'
+                ];
+            }
+
+            // Convertir el bean a un array asociativo
+            return $company->export();
         }
-        catch (PDOException $e)
+        catch (Exception $e)
         {
             return [
                 'status' => 'error',
