@@ -2,6 +2,9 @@
 require_once __DIR__ . '/session_config.php';
 require_once dirname(__DIR__) . '/../config/db_conn.php';
 require_once __DIR__ . '/security_functions.php';
+// Importar RedBeanPHP
+use RedBeanPHP\R as R;
+
 date_default_timezone_set(env('APP_TIMEZONE'));
 $isDebug = env('APP_DEBUG') === 'true';
 error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
@@ -23,9 +26,9 @@ function checkSession()
 		$admin_id = filter_var($_COOKIE['persistent_session'], FILTER_SANITIZE_NUMBER_INT);
 		if ($admin_id)
 		{
-			$stmt = $conn->prepare("SELECT id FROM admin WHERE id = ?");
-			$stmt->execute([$admin_id]);
-			if ($stmt->rowCount() > 0)
+			// Usar RedBeanPHP para verificar el usuario
+			$admin = R::load('admin', $admin_id);
+			if ($admin->id)
 			{
 				$_SESSION['admin'] = $admin_id;
 				$_SESSION['last_activity'] = $current_time;
@@ -148,12 +151,21 @@ function checkSession()
 	{
 		try
 		{
-			$sql = "UPDATE active_sessions SET last_activity = NOW() 
-					WHERE user_id = ? AND device_token = ?";
-			$stmt = $conn->prepare($sql);
-			$stmt->execute([$_SESSION['admin'], $_SESSION['device_token']]);
+			// Buscar la sesión activa existente
+			$activeSession = R::findOne(
+				'active_sessions',
+				'user_id = ? AND device_token = ?',
+				[$_SESSION['admin'], $_SESSION['device_token']]
+			);
+
+			// Si existe, actualizar la última actividad
+			if ($activeSession)
+			{
+				$activeSession->last_activity = R::isoDateTime();
+				R::store($activeSession);
+			}
 		}
-		catch (PDOException $e)
+		catch (Exception $e)
 		{
 			// Si hay un error, continuamos sin interrumpir la sesión
 		}
@@ -163,15 +175,18 @@ function checkSession()
 // Función para registrar cambios de dispositivo para auditoría
 function logDeviceChange($user_id, $change_type, $old_value, $new_value)
 {
-	global $conn;
 	try
 	{
-		$sql = "INSERT INTO session_logs (user_id, log_type, old_value, new_value, created_at) 
-				VALUES (?, ?, ?, ?, NOW())";
-		$stmt = $conn->prepare($sql);
-		$stmt->execute([$user_id, $change_type, $old_value, $new_value]);
+		// Crear un nuevo registro de log usando RedBeanPHP
+		$log = R::dispense('session_logs');
+		$log->user_id = $user_id;
+		$log->log_type = $change_type;
+		$log->old_value = $old_value;
+		$log->new_value = $new_value;
+		$log->created_at = R::isoDateTime();
+		R::store($log);
 	}
-	catch (PDOException $e)
+	catch (Exception $e)
 	{
 		// Si la tabla no existe, no fallamos, solo ignoramos el log
 	}
@@ -185,12 +200,8 @@ if (!isset($_SESSION['admin']) || trim($_SESSION['admin']) == '')
 	exit();
 }
 
-$sql = "SELECT * FROM admin WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->execute([$_SESSION['admin']]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
-
+// Cargar información del usuario con RedBeanPHP
+$user = R::load('admin', $_SESSION['admin'])->export();
 
 // Verificar si el usuario tiene MFA requerido pero no habilitado
 if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
@@ -212,22 +223,19 @@ if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
 	exit();
 }
 
-// update last_login time
-$now_login = date('Y-m-d H:i:s');
-$sql = "UPDATE admin SET last_login = ? WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->execute([$now_login, $_SESSION['admin']]);
+// Actualizar last_login time usando RedBeanPHP
+$admin = R::load('admin', $_SESSION['admin']);
+$admin->last_login = date('Y-m-d H:i:s');
+R::store($admin);
 
-$sql = "SELECT * FROM company_data WHERE id = 1 LIMIT 1";
-$stmt = $conn->prepare($sql);
-$stmt->execute();
-$data = $stmt->fetch(PDO::FETCH_ASSOC);
+// Obtener datos de la empresa usando RedBeanPHP
+$company = R::load('company_data', 1)->export();
 
-$company_name = $data['company_name'];
-$company_name_short = $data['company_name_short'];
-$app_name = $data['app_name'];
-$app_version = $data['app_version'];
-$developer_name = $data['developer_name'];
+$company_name = $company['company_name'];
+$company_name_short = $company['company_name_short'];
+$app_name = $company['app_name'];
+$app_version = $company['app_version'];
+$developer_name = $company['developer_name'];
 
 $photoPath = '../images/admins/' . $user['photo'];
 $defaultPhoto = '../images/admins/profile.png';
