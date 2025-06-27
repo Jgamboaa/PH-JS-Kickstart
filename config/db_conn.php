@@ -1,5 +1,10 @@
 <?php
 require_once __DIR__ . '/env_reader.php';
+// Incluir RedBeanPHP (asumiendo que se instaló con Composer)
+require_once __DIR__ . '/../vendor/autoload.php';
+
+// Utilizar el namespace de RedBeanPHP
+use RedBeanPHP\R as R;
 
 // Obtener las variables de entorno
 $host = env('DB_HOST');
@@ -23,7 +28,19 @@ try
 {
     // Crear la instancia de PDO
     $conn = new PDO($dsn, $user, $pass, $options);
-    // Aquí se puede continuar con el uso de $pdo
+
+    // Configurar RedBeanPHP para usar la conexión existente
+    R::setup($dsn, $user, $pass);
+
+    // Modo de congelación (freeze = false en desarrollo, true en producción)
+    // En modo desarrollo, RedBean puede modificar esquemas automáticamente
+    $environment = env('APP_ENV', 'development');
+    R::freeze($environment === 'production');
+
+    // Configurar opciones adicionales de RedBeanPHP
+    R::useFeatureSet('novice/latest');
+
+    // Aquí se puede continuar con el uso de $pdo o R::
 }
 catch (PDOException $e)
 {

@@ -6,6 +6,7 @@
         "dompdf/dompdf": "^3.1",
         "spomky-labs/otphp": "^11.3",
         "spatie/db-dumper": "^3.8",
-        "robmorgan/phinx": "^0.16.9"
+        "robmorgan/phinx": "^0.16.9",
+        "gabordemooij/redbean": "^5.7"
     }
 }
