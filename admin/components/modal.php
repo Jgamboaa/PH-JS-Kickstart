@@ -21,13 +21,13 @@ function renderModal($options = [])
         <div class='modal-dialog {$sizeClass} {$scrollableClass}'>
             <div class='modal-content'>
                 <div class='modal-header'>
-                    <h4 class='modal-title'>{$config['title']}</h4>
+                    <h5 class='modal-title'>{$config['title']}</h5>
                     " . ($config['closable'] ? "<button type='button' class='close' data-dismiss='modal'><span>&times;</span></button>" : "") . "
                 </div>
                 <div class='modal-body'>
                     {$config['body']}
                 </div>
-                " . ($config['footer'] ? "<div class='modal-footer'>{$config['footer']}</div>" : "") . "
+                " . ($config['footer'] ? "<div class='modal-footer justify-content-between'>{$config['footer']}</div>" : "") . "
             </div>
         </div>
     </div>";

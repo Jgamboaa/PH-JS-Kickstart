@@ -2,59 +2,77 @@
     $(document).ready(function() {
         loadTable();
 
+        // Abrir modal para crear rol
         $('#add').on('click', function() {
-            Swal.fire({
-                title: 'Añadir Nuevo Rol',
-                html: '<input type="text" id="nombre" class="form-control" placeholder="Nombre">',
-                confirmButtonText: 'Guardar',
-                showCancelButton: true,
-                preConfirm: () => {
-                    const nombre = Swal.getPopup().querySelector('#nombre').value;
-                    if (!nombre) {
-                        Swal.showValidationMessage('Por favor, completa el campo');
-                    }
-                    return {
-                        nombre
-                    };
-                }
-            }).then((result) => {
-                if (result.isConfirmed) {
-                    manageRole('create', result.value);
-                }
-            });
+            $('#createRoleForm')[0].reset();
+            $('#createRoleModal').modal('show');
         });
 
+        // Guardar nuevo rol
+        $('#saveRoleBtn').on('click', function() {
+            const nombre = $('#nombre').val();
+
+            if (!nombre) {
+                Swal.fire('Error', 'Por favor, completa el campo nombre', 'error');
+                return;
+            }
+
+            manageRole('create', {
+                nombre
+            });
+            $('#createRoleModal').modal('hide');
+        });
+
+        // Abrir modal para editar rol
         $('#roles').on('click', '.edit-btn', function() {
             const id = $(this).data('id');
+
             $.post('includes/system/roles.php', {
                 crud: 'get',
                 id
             }, function(data) {
                 const rol = JSON.parse(data);
-                Swal.fire({
-                    title: 'Editar Rol',
-                    html: `
-                        <input type="hidden" id="edit-id" value="${rol.id}">
-                        <input type="text" id="edit-nombre" class="form-control" value="${rol.nombre}">
-                    `,
-                    confirmButtonText: 'Actualizar',
-                    showCancelButton: true,
-                    preConfirm: () => {
-                        const id = Swal.getPopup().querySelector('#edit-id').value;
-                        const nombre = Swal.getPopup().querySelector('#edit-nombre').value;
-                        if (!nombre) {
-                            Swal.showValidationMessage('Por favor, completa el campo');
-                        }
-                        return {
-                            id,
-                            nombre
-                        };
-                    }
-                }).then((result) => {
-                    if (result.isConfirmed) {
-                        manageRole('edit', result.value);
-                    }
-                });
+
+                $('#edit-id').val(rol.id);
+                $('#edit-nombre').val(rol.nombre);
+                $('#editRoleModal').modal('show');
+            });
+        });
+
+        // Actualizar rol
+        $('#updateRoleBtn').on('click', function() {
+            const id = $('#edit-id').val();
+            const nombre = $('#edit-nombre').val();
+
+            if (!nombre) {
+                Swal.fire('Error', 'Por favor, completa el campo nombre', 'error');
+                return;
+            }
+
+            manageRole('edit', {
+                id,
+                nombre
+            });
+            $('#editRoleModal').modal('hide');
+        });
+
+        // Eliminar rol (añadiendo confirmación con SweetAlert)
+        $('#roles').on('click', '.delete-btn', function() {
+            const id = $(this).data('id');
+
+            Swal.fire({
+                title: '¿Estás seguro?',
+                text: 'Este rol será eliminado del sistema.',
+                icon: 'warning',
+                showCancelButton: true,
+                confirmButtonText: 'Sí, eliminar',
+                cancelButtonText: 'Cancelar'
+            }).then((result) => {
+                if (result.isConfirmed) {
+                    manageRole('delete', {
+                        id
+                    });
+                }
             });
         });
     });
@@ -95,6 +113,7 @@
             crud,
             ...data
         }, function(response) {
+            // Usar SweetAlert para mostrar notificaciones, como en users.php
             Swal.fire(response.message, '', response.status ? 'success' : 'error');
             table.ajax.reload(null, false); // Recarga la tabla sin cambiar de página
         }, 'json');
