@@ -3,6 +3,9 @@ require_once 'includes/session.php';
 require_once 'includes/functions/2fa_functions.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 
+// Usar RedBeanPHP
+use RedBeanPHP\R as R;
+
 // Redirigir al nuevo sistema basado en modal
 header('Location: configurar_2fa_redirect.php');
 exit();
@@ -18,10 +21,13 @@ if (!isset($_SESSION['admin']))
 $adminId = $_SESSION['admin'];
 
 // Obtener información del usuario
-$sql = "SELECT username, tfa_enabled, tfa_secret FROM admin WHERE id = ?";
-$stmt = $conn->prepare($sql);
-$stmt->execute([$adminId]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$admin = R::load('admin', $adminId);
+
+if (!$admin->id)
+{
+    header('Location: login.php');
+    exit();
+}
 
 $message = '';
 $provisioningUri = '';
@@ -30,10 +36,10 @@ $backupCodes = [];
 $showBackupCodes = false;
 
 // Si el usuario aún no tiene 2FA configurado o está configurando uno nuevo
-if (isset($_GET['setup']) || empty($user['tfa_secret']))
+if (isset($_GET['setup']) || empty($admin->tfa_secret))
 {
     $newSecret = generateTOTPSecret();
-    $totp = createTOTP($newSecret, $user['username'], 'Sistema Admin');
+    $totp = createTOTP($newSecret, $admin->username, 'Sistema Admin');
     // Obtenemos la URI de aprovisionamiento para generar el QR con qrcode.js
     $provisioningUri = $totp->getProvisioningUri();
 }
@@ -51,9 +57,10 @@ if (isset($_POST['activate_2fa']))
         $backupCodes = generateBackupCodes();
 
         // Guardar el secreto y activar 2FA
-        $sql = "UPDATE admin SET tfa_secret = ?, tfa_enabled = 1, tfa_backup_codes = ? WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$secret, json_encode($backupCodes), $adminId]);
+        $admin->tfa_secret = $secret;
+        $admin->tfa_enabled = 1;
+        $admin->tfa_backup_codes = json_encode($backupCodes);
+        R::store($admin);
 
         $message = 'Autenticación de dos factores activada correctamente.';
         $showBackupCodes = true;
@@ -70,15 +77,14 @@ if (isset($_POST['deactivate_2fa']))
     $otp = $_POST['otp'];
 
     // Verificar que el código OTP es correcto
-    if (verifyOTP($user['tfa_secret'], $otp))
+    if (verifyOTP($admin->tfa_secret, $otp))
     {
         // Desactivar 2FA
-        $sql = "UPDATE admin SET tfa_enabled = 0 WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$adminId]);
+        $admin->tfa_enabled = 0;
+        R::store($admin);
 
         $message = 'Autenticación de dos factores desactivada correctamente.';
-        $user['tfa_enabled'] = 0;
+        $admin->tfa_enabled = 0;
     }
     else
     {
@@ -92,15 +98,14 @@ if (isset($_POST['regenerate_backup']))
     $otp = $_POST['otp'];
 
     // Verificar que el código OTP es correcto
-    if (verifyOTP($user['tfa_secret'], $otp))
+    if (verifyOTP($admin->tfa_secret, $otp))
     {
         // Generar nuevos códigos de respaldo
         $backupCodes = generateBackupCodes();
 
         // Guardar los nuevos códigos
-        $sql = "UPDATE admin SET tfa_backup_codes = ? WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([json_encode($backupCodes), $adminId]);
+        $admin->tfa_backup_codes = json_encode($backupCodes);
+        R::store($admin);
 
         $message = 'Códigos de respaldo regenerados correctamente.';
         $showBackupCodes = true;
@@ -117,17 +122,12 @@ if (isset($_POST['show_backup']))
     $otp = $_POST['otp'];
 
     // Verificar que el código OTP es correcto
-    if (verifyOTP($user['tfa_secret'], $otp))
+    if (verifyOTP($admin->tfa_secret, $otp))
     {
         // Obtener códigos de respaldo
-        $sql = "SELECT tfa_backup_codes FROM admin WHERE id = ?";
-        $stmt = $conn->prepare($sql);
-        $stmt->execute([$adminId]);
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-        if ($row && !empty($row['tfa_backup_codes']))
+        if (!empty($admin->tfa_backup_codes))
         {
-            $backupCodes = json_decode($row['tfa_backup_codes'], true);
+            $backupCodes = json_decode($admin->tfa_backup_codes, true);
             $showBackupCodes = true;
         }
         else
@@ -178,7 +178,7 @@ if (isset($_POST['show_backup']))
                 <div class="text-center mb-4">
                     <h4>
                         Estado actual:
-                        <?php if ($user['tfa_enabled'] == 1): ?>
+                        <?php if ($admin->tfa_enabled == 1): ?>
                             <span class="badge bg-success">Activado</span>
                         <?php else: ?>
                             <span class="badge bg-danger">Desactivado</span>
@@ -204,7 +204,7 @@ if (isset($_POST['show_backup']))
                             <?php endforeach; ?>
                         </div>
                     </div>
-                <?php endif; ?> <?php if ($user['tfa_enabled'] == 0): ?>
+                <?php endif; ?> <?php if ($admin->tfa_enabled == 0): ?>
                     <!-- Configuración inicial de 2FA -->
                     <div class="text-center mb-4">
                         <h5>Configurar autenticación de dos factores</h5>

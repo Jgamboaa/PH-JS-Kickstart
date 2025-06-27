@@ -1,6 +1,9 @@
 <?php
 include 'functions/mail_functions.php';
 
+// Usar RedBeanPHP
+use RedBeanPHP\R as R;
+
 function generateCSRFToken()
 {
     if (!isset($_SESSION['csrf_token']))
@@ -12,23 +15,20 @@ function generateCSRFToken()
 
 function checkLoginAttempts($username, $mail_support)
 {
-    global $conn;
-    $sql = "SELECT login_attempts, last_attempt FROM login_attempts WHERE username = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([$username]);
+    $loginAttempt = R::findOne('loginattempts', 'username = ?', [$username]);
 
-    if ($stmt->rowCount() > 0)
+    if ($loginAttempt)
     {
-        $row = $stmt->fetch(PDO::FETCH_ASSOC);
         $bloqueo = false;
         $tiempoBloqueo = 0;
+        $lastAttemptTime = strtotime($loginAttempt->last_attempt);
 
-        if ($row['login_attempts'] >= 3 && time() - strtotime($row['last_attempt']) < 180)
+        if ($loginAttempt->login_attempts >= 3 && time() - $lastAttemptTime < 180)
         {
             $bloqueo = true;
             $tiempoBloqueo = 3;
         }
-        elseif ($row['login_attempts'] >= 6 && time() - strtotime($row['last_attempt']) < 300)
+        elseif ($loginAttempt->login_attempts >= 6 && time() - $lastAttemptTime < 300)
         {
             $bloqueo = true;
             $tiempoBloqueo = 5;
@@ -44,7 +44,7 @@ function checkLoginAttempts($username, $mail_support)
                 <p>Se ha detectado un bloqueo de cuenta con los siguientes detalles:</p>
                 <ul>
                     <li><strong>Usuario:</strong> {$username}</li>
-                    <li><strong>Intentos fallidos:</strong> {$row['login_attempts']}</li>
+                    <li><strong>Intentos fallidos:</strong> {$loginAttempt->login_attempts}</li>
                     <li><strong>Tiempo de bloqueo:</strong> {$tiempoBloqueo} minutos</li>
                     <li><strong>IP:</strong> {$_SERVER['REMOTE_ADDR']}</li>
                     <li><strong>Fecha y hora:</strong> " . date('d/m/Y H:i:s') . "</li>
@@ -62,30 +62,38 @@ function checkLoginAttempts($username, $mail_support)
 
 function updateLoginAttempts($username)
 {
-    global $conn;
-    $sql = "INSERT INTO login_attempts (username, login_attempts, last_attempt) 
-            VALUES (?, 1, NOW()) 
-            ON DUPLICATE KEY UPDATE 
-            login_attempts = login_attempts + 1, 
-            last_attempt = NOW()";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([$username]);
+    $loginAttempt = R::findOne('loginattempts', 'username = ?', [$username]);
+
+    if ($loginAttempt)
+    {
+        // Actualizar intento existente
+        $loginAttempt->login_attempts += 1;
+        $loginAttempt->last_attempt = R::isoDateTime();
+    }
+    else
+    {
+        // Crear nuevo registro de intento
+        $loginAttempt = R::dispense('loginattempts');
+        $loginAttempt->username = $username;
+        $loginAttempt->login_attempts = 1;
+        $loginAttempt->last_attempt = R::isoDateTime();
+    }
+
+    R::store($loginAttempt);
 }
 
 function resetLoginAttempts($username)
 {
-    global $conn;
-    $sql = "DELETE FROM login_attempts WHERE username = ?";
-    $stmt = $conn->prepare($sql);
-    $stmt->execute([$username]);
+    $loginAttempts = R::find('loginattempts', 'username = ?', [$username]);
+    R::trashAll($loginAttempts);
 }
 
 function logLoginActivity($username, $success)
 {
-    global $conn;
-    $sql = "INSERT INTO login_logs (username, status, ip_address) VALUES (?, ?, ?)";
-    $stmt = $conn->prepare($sql);
-    $status = $success ? 'success' : 'failed';
-    $ip = $_SERVER['REMOTE_ADDR'];
-    $stmt->execute([$username, $status, $ip]);
+    $loginLog = R::dispense('loginlogs');
+    $loginLog->username = $username;
+    $loginLog->status = $success ? 'success' : 'failed';
+    $loginLog->ip_address = $_SERVER['REMOTE_ADDR'];
+    $loginLog->created_at = R::isoDateTime();
+    R::store($loginLog);
 }

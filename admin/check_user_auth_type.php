@@ -3,6 +3,9 @@ require_once 'includes/session_config.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 require_once 'includes/security_functions.php';
 
+// Usar RedBeanPHP
+use RedBeanPHP\R as R;
+
 header('Content-Type: application/json');
 $response = ['status' => false, 'message' => '', 'auth_type' => 'password', 'user_id' => null];
 
@@ -25,21 +28,17 @@ if (!isset($_POST['username']) || empty($_POST['username']))
 $username = filter_var($_POST['username'], FILTER_SANITIZE_EMAIL);
 
 // Verificar si el usuario existe y su tipo de autenticación
-$sql = "SELECT id, username, tfa_enabled, admin_estado FROM admin WHERE username = ?";
-$stmt = $conn->prepare($sql);
-$stmt->execute([$username]);
+$user = R::findOne('admin', 'username = ?', [$username]);
 
-if ($stmt->rowCount() < 1)
+if (!$user)
 {
     $response['message'] = 'Usuario no encontrado';
     echo json_encode($response);
     exit();
 }
 
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
-
 // Verificar si la cuenta está deshabilitada
-if ($user['admin_estado'] == 1)
+if ($user->admin_estado == 1)
 {
     $response['message'] = 'Tu cuenta ha sido deshabilitada';
     echo json_encode($response);
@@ -57,9 +56,9 @@ if (!checkLoginAttempts($username, env('MAIL_SUPPORT')))
 
 // Determinar tipo de autenticación
 $response['status'] = true;
-$response['user_id'] = $user['id'];
+$response['user_id'] = $user->id;
 
-if ($user['tfa_enabled'] == 1)
+if ($user->tfa_enabled == 1)
 {
     $response['auth_type'] = '2fa';
     $response['message'] = 'Ingresa el código de verificación 2FA';

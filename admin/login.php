@@ -2,6 +2,10 @@
 require_once 'includes/session_config.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 require_once 'includes/security_functions.php';
+
+// Usar RedBeanPHP
+use RedBeanPHP\R as R;
+
 $mail_support = env('MAIL_SUPPORT');
 $isDebug = env('APP_DEBUG') === 'true';
 error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
@@ -16,21 +20,34 @@ $response = ['status' => false, 'message' => '', 'redirect' => false];
 // Función para registrar la sesión del dispositivo
 function registerDeviceSession($user_id, $device_token, $ip_address, $user_agent)
 {
-	global $conn;
-
 	try
 	{
-		// Registramos o actualizamos la sesión para este dispositivo
-		$sql = "INSERT INTO active_sessions (user_id, device_token, ip_address, user_agent, last_activity, created_at) 
-                VALUES (?, ?, ?, ?, NOW(), NOW())
-                ON DUPLICATE KEY UPDATE 
-                ip_address = VALUES(ip_address), 
-                user_agent = VALUES(user_agent), 
-                last_activity = NOW()";
-		$stmt = $conn->prepare($sql);
-		$stmt->execute([$user_id, $device_token, $ip_address, $user_agent]);
+		// Buscar sesión existente por device_token
+		$existingSession = R::findOne('activesessions', 'device_token = ?', [$device_token]);
+
+		if ($existingSession)
+		{
+			// Actualizar sesión existente
+			$existingSession->user_id = $user_id;
+			$existingSession->ip_address = $ip_address;
+			$existingSession->user_agent = $user_agent;
+			$existingSession->last_activity = R::isoDateTime();
+			R::store($existingSession);
+		}
+		else
+		{
+			// Crear nueva sesión
+			$session = R::dispense('activesessions');
+			$session->user_id = $user_id;
+			$session->device_token = $device_token;
+			$session->ip_address = $ip_address;
+			$session->user_agent = $user_agent;
+			$session->last_activity = R::isoDateTime();
+			$session->created_at = R::isoDateTime();
+			R::store($session);
+		}
 	}
-	catch (PDOException $e)
+	catch (Exception $e)
 	{
 		// Si hay un error al registrar la sesión, continuamos de todos modos
 		// pero idealmente deberíamos registrar este error
@@ -45,21 +62,18 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 
 	if (checkLoginAttempts($username, $mail_support))
 	{
-		$sql = "SELECT * FROM admin WHERE username = ?";
-		$stmt = $conn->prepare($sql);
-		$stmt->execute([$username]);
+		$admin = R::findOne('admin', 'username = ?', [$username]);
 
-		if ($stmt->rowCount() < 1)
+		if (!$admin)
 		{
 			updateLoginAttempts($username);
 			$response['message'] = 'Usuario no encontrado';
 		}
 		else
 		{
-			$row = $stmt->fetch(PDO::FETCH_ASSOC);
-			if (password_verify($password, $row['password']))
+			if (password_verify($password, $admin->password))
 			{
-				if ($row['admin_estado'] == 1)
+				if ($admin->admin_estado == 1)
 				{
 					$response['message'] = 'Tu cuenta ha sido deshabilitada';
 				}
@@ -84,35 +98,35 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 					logLoginActivity($username, true);
 
 					// NUEVO: Verificar si 2FA es requerido pero no está configurado
-					if ($row['tfa_required'] == 1 && $row['tfa_enabled'] == 0)
+					if ($admin->tfa_required == 1 && $admin->tfa_enabled == 0)
 					{
 						// El usuario debe configurar 2FA
 						$_SESSION['setup_2fa_pending'] = true;
-						$_SESSION['setup_2fa_user_id'] = $row['id'];
+						$_SESSION['setup_2fa_user_id'] = $admin->id;
 						$_SESSION['setup_2fa_username'] = $username;
 
 						// Responder con JSON para activar la configuración 2FA
 						echo json_encode([
 							'status' => true,
 							'require_2fa_setup' => true,
-							'user_id' => $row['id'],
+							'user_id' => $admin->id,
 							'username' => $username,
 							'message' => 'Es necesario configurar la autenticación de dos factores para continuar'
 						]);
 						exit();
 					}
 					// Verificar si el usuario tiene 2FA activado
-					else if ($row['tfa_enabled'] == 1)
+					else if ($admin->tfa_enabled == 1)
 					{
 						// Configurar sesión para verificación 2FA
 						$_SESSION['2fa_pending'] = true;
-						$_SESSION['2fa_user_id'] = $row['id'];
+						$_SESSION['2fa_user_id'] = $admin->id;
 
 						// Responder con JSON para activar la verificación 2FA en la misma página
 						echo json_encode([
 							'status' => true,
 							'require_2fa' => true,
-							'user_id' => $row['id'],
+							'user_id' => $admin->id,
 							'message' => 'Se requiere verificación de dos factores'
 						]);
 						exit();
@@ -121,25 +135,24 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 					{
 						// Proceso normal sin 2FA
 						// Validación para el saludo según el género y si es primera vez o no
-						if (empty($row['last_login']))
+						if (empty($admin->last_login))
 						{
-							$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+							$saludo_login = ($admin->admin_gender == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
 						}
 						else
 						{
-							$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+							$saludo_login = ($admin->admin_gender == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
 						}
 
-						$_SESSION['admin'] = $row['id'];
+						$_SESSION['admin'] = $admin->id;
 						$_SESSION['last_activity'] = time();
 
 						// Actualizar último login
-						$sql = "UPDATE admin SET last_login = NOW() WHERE id = ?";
-						$stmt = $conn->prepare($sql);
-						$stmt->execute([$row['id']]);
+						$admin->last_login = R::isoDateTime();
+						R::store($admin);
 
 						$response['status'] = true;
-						$response['message'] = $saludo_login . ' ' . $row['user_firstname'] . '!';
+						$response['message'] = $saludo_login . ' ' . $admin->user_firstname . '!';
 						$response['redirect'] = true;
 						$response['redirect_url'] = 'home.php';
 					}
@@ -217,30 +230,25 @@ else if (isset($_POST['setup_2fa_submit']) && isset($_POST['csrf_token']) && $_P
 		$backupCodes = generateBackupCodes();
 
 		// Guardar el secreto y activar 2FA
-		$sql = "UPDATE admin SET tfa_secret = ?, tfa_enabled = 1, tfa_backup_codes = ? WHERE id = ?";
-		$stmt = $conn->prepare($sql);
+		$admin = R::load('admin', $user_id);
+		$admin->tfa_secret = $_SESSION['temp_tfa_secret'];
+		$admin->tfa_enabled = 1;
+		$admin->tfa_backup_codes = json_encode($backupCodes);
 
-		if ($stmt->execute([$_SESSION['temp_tfa_secret'], json_encode($backupCodes), $user_id]))
+		if (R::store($admin))
 		{
-			// Obtener información del usuario para el mensaje de saludo
-			$sql = "SELECT user_firstname, admin_gender, last_login FROM admin WHERE id = ?";
-			$stmt = $conn->prepare($sql);
-			$stmt->execute([$user_id]);
-			$row = $stmt->fetch();
-
 			// Actualizar último login
-			$sql = "UPDATE admin SET last_login = NOW() WHERE id = ?";
-			$stmt = $conn->prepare($sql);
-			$stmt->execute([$user_id]);
+			$admin->last_login = R::isoDateTime();
+			R::store($admin);
 
 			// Mensaje de bienvenida
-			if (empty($row['last_login']))
+			if (empty($admin->last_login))
 			{
-				$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+				$saludo_login = ($admin->admin_gender == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
 			}
 			else
 			{
-				$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+				$saludo_login = ($admin->admin_gender == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
 			}
 
 			// IMPORTANTE: Limpiar variables de sesión temporales ANTES de establecer la sesión normal
@@ -256,7 +264,7 @@ else if (isset($_POST['setup_2fa_submit']) && isset($_POST['csrf_token']) && $_P
 
 			$response = [
 				'status' => true,
-				'message' => $saludo_login . ' ' . $row['user_firstname'] . '!',
+				'message' => $saludo_login . ' ' . $admin->user_firstname . '!',
 				'redirect' => true,
 				'redirect_url' => 'home.php',
 				'backup_codes' => $backupCodes
@@ -265,7 +273,6 @@ else if (isset($_POST['setup_2fa_submit']) && isset($_POST['csrf_token']) && $_P
 		else
 		{
 			$response['message'] = 'Error al guardar la configuración 2FA';
-			$response['debug'] = ['sql_error' => $stmt->errorInfo()];
 		}
 	}
 	else
@@ -285,20 +292,16 @@ else if (isset($_POST['login_2fa']) && isset($_POST['csrf_token']) && $_POST['cs
 	$useBackupCode = isset($_POST['backup_mode']) && $_POST['backup_mode'] == 1;
 
 	// Verificar que el usuario existe
-	$sql = "SELECT * FROM admin WHERE username = ? AND id = ?";
-	$stmt = $conn->prepare($sql);
-	$stmt->execute([$username, $user_id]);
+	$admin = R::findOne('admin', 'username = ? AND id = ?', [$username, $user_id]);
 
-	if ($stmt->rowCount() < 1)
+	if (!$admin)
 	{
 		$response['message'] = 'Usuario no encontrado';
 		echo json_encode($response);
 		exit();
 	}
 
-	$row = $stmt->fetch(PDO::FETCH_ASSOC);
-
-	if ($row['admin_estado'] == 1)
+	if ($admin->admin_estado == 1)
 	{
 		$response['message'] = 'Tu cuenta ha sido deshabilitada';
 		echo json_encode($response);
@@ -323,7 +326,7 @@ else if (isset($_POST['login_2fa']) && isset($_POST['csrf_token']) && $_POST['cs
 	else
 	{
 		// Verificar código TOTP
-		$verification_success = verifyOTP($row['tfa_secret'], $code);
+		$verification_success = verifyOTP($admin->tfa_secret, $code);
 		if (!$verification_success)
 		{
 			$response['message'] = 'Código de verificación inválido';
@@ -345,7 +348,7 @@ else if (isset($_POST['login_2fa']) && isset($_POST['csrf_token']) && $_POST['cs
 		$_SESSION['device_token'] = $device_token;
 
 		// Registramos la sesión para este dispositivo
-		registerDeviceSession($row['id'], $device_token, $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+		registerDeviceSession($admin->id, $device_token, $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
 
 		// Almacenamos IP y user agent para seguimiento
 		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
@@ -354,25 +357,24 @@ else if (isset($_POST['login_2fa']) && isset($_POST['csrf_token']) && $_POST['cs
 		logLoginActivity($username, true);
 
 		// Actualizar último login
-		$sql = "UPDATE admin SET last_login = NOW() WHERE id = ?";
-		$stmt = $conn->prepare($sql);
-		$stmt->execute([$user_id]);
+		$admin->last_login = R::isoDateTime();
+		R::store($admin);
 
 		// Validación para el saludo según el género y si es primera vez o no
-		if (empty($row['last_login']))
+		if (empty($admin->last_login))
 		{
-			$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+			$saludo_login = ($admin->admin_gender == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
 		}
 		else
 		{
-			$saludo_login = ($row['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+			$saludo_login = ($admin->admin_gender == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
 		}
 
-		$_SESSION['admin'] = $row['id'];
+		$_SESSION['admin'] = $admin->id;
 		$_SESSION['last_activity'] = time();
 
 		$response['status'] = true;
-		$response['message'] = $saludo_login . ' ' . $row['user_firstname'] . '!';
+		$response['message'] = $saludo_login . ' ' . $admin->user_firstname . '!';
 		$response['redirect'] = true;
 		$response['redirect_url'] = 'home.php';
 	}
