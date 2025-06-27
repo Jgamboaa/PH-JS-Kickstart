@@ -1,95 +1,315 @@
 <?php
-// admin/includes/components/form_fields.php
-function renderInputField($options = [])
+function renderFormField(array $options = [])
 {
+    // 1. Valores por defecto
     $defaults = [
-        'type' => 'text',
-        'name' => '',
-        'id' => '',
-        'label' => '',
-        'value' => '',
-        'placeholder' => '',
-        'required' => false,
-        'disabled' => false,
-        'class' => 'form-control',
-        'icon' => '',
-        'help_text' => ''
+        'type'          => 'text',    // text, textarea, select, checkbox, radio, switch, file, range, color, date, time, datetime-local, select2, duallistbox, inputmask, colorpicker, timepicker, datepicker, daterangepicker, bs-stepper, dropzone, richtext…
+        'name'          => '',
+        'id'            => '',
+        'label'         => '',
+        'value'         => '',
+        'placeholder'   => '',
+        'required'      => false,
+        'disabled'      => false,
+        'class'         => 'form-control',
+        'icon'          => '',        // FontAwesome o similar
+        'help_text'     => '',
+        // Para <select>
+        'options'       => [],        // ['value'=>'Texto']
+        'selected'      => null,
+        'multiple'      => false,
+        // Para skins de iCheck / custom-range
+        'skin'          => 'primary', // primary, danger, success, teal…
+        // Para plugins avanzados
+        'config'        => [],        // Parámetros de configuración JS
+        // Slots para addons en InputGroup
+        'prepend'       => '',
+        'append'        => '',
     ];
+    $cfg = array_merge($defaults, $options);
 
-    $config = array_merge($defaults, $options);
-    $required = $config['required'] ? 'required' : '';
-    $disabled = $config['disabled'] ? 'disabled' : '';
+    // Flags comunes
+    $req    = $cfg['required']  ? 'required'  : '';
+    $dis    = $cfg['disabled']  ? 'disabled'  : '';
+    $multi  = $cfg['multiple']  ? ' multiple' : '';
+    $name   = $cfg['multiple']  ? "{$cfg['name']}[]" : $cfg['name'];
 
+    // Contenedor general
     $html = "<div class='form-group'>";
-    if ($config['label'])
+
+    // Etiqueta
+    if ($cfg['label'])
     {
-        $html .= "<label for='{$config['id']}'>{$config['label']}</label>";
+        $html .= "<label for='{$cfg['id']}'>{$cfg['label']}</label>";
     }
 
-    if ($config['icon'])
+    // Input Group: abrir
+    if ($cfg['prepend'] || $cfg['append'] || $cfg['icon'])
     {
-        $html .= "<div class='input-group'>";
-        $html .= "<div class='input-group-prepend'>";
-        $html .= "<span class='input-group-text'><i class='{$config['icon']}'></i></span>";
+        $classes = 'input-group';
+        if (!empty($options['igroup_size']))
+        {
+            $classes .= " input-group-{$options['igroup_size']}";
+        }
+        $html .= "<div class='{$classes}'>";
+        // Prepend slot
+        if ($cfg['prepend'])
+        {
+            $html .= "<div class='input-group-prepend'>{$cfg['prepend']}</div>";
+        }
+        // Icono por defecto
+        if ($cfg['icon'])
+        {
+            $html .= "<div class='input-group-prepend'>
+                        <span class='input-group-text'>
+                          <i class='{$cfg['icon']}'></i>
+                        </span>
+                      </div>";
+        }
+    }
+
+    // 2. Render según tipo
+    switch ($cfg['type'])
+    {
+        // —— Campos de texto básicos ——
+        case 'textarea':
+            $html .= "<textarea 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          class='{$cfg['class']}' 
+                          placeholder='{$cfg['placeholder']}' 
+                          {$req} {$dis}>{$cfg['value']}</textarea>";
+            break;
+
+        case 'select':
+        case 'select2':
+        case 'select2-bootstrap4':
+        case 'duallistbox':
+            // Ajustar clases para plugins
+            $selClass = $cfg['class'];
+            if ($cfg['type'] === 'select2')
+            {
+                $selClass .= ' select2';
+            }
+            elseif ($cfg['type'] === 'select2-bootstrap4')
+            {
+                $selClass .= ' select2bs4';
+            }
+            elseif ($cfg['type'] === 'duallistbox')
+            {
+                $selClass .= ' duallistbox';
+            }
+            $html .= "<select 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          class='{$selClass}' 
+                          {$multi} {$req} {$dis}>";
+            foreach ($cfg['options'] as $val => $txt)
+            {
+                $sel = ($val == $cfg['selected']) ? 'selected' : '';
+                $html .= "<option value='{$val}' {$sel}>{$txt}</option>";
+            }
+            $html .= "</select>";
+            break;
+
+        // —— Checkboxes y radios ——
+        case 'checkbox':
+        case 'radio':
+            $inpType = $cfg['type'];
+            $html .= "<div class='form-check'>";
+            $html .= "<input 
+                          class='form-check-input' 
+                          type='{$inpType}' 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          value='{$cfg['value']}' 
+                          {$req} {$dis}>";
+            if ($cfg['label'])
+            {
+                $html .= "<label class='form-check-label' for='{$cfg['id']}'>{$cfg['label']}</label>";
+            }
+            $html .= "</div>";
+            break;
+
+        case 'icheck':
+            // iCheck Bootstrap skins (icheck-primary, icheck-danger…)
+            $skinCls = "icheck-{$cfg['skin']}";
+            $html .= "<div class='{$skinCls} d-inline'>";
+            $html .= "<input 
+                          type='checkbox' 
+                          id='{$cfg['id']}' 
+                          {$req} {$dis}>";
+            $html .= "<label for='{$cfg['id']}'>{$cfg['label']}</label>";
+            $html .= "</div>";
+            break;
+
+        case 'switch':
+            // Bootstrap Switch (requiere plugin bootstrapSwitch)
+            $html .= "<div class='custom-control custom-switch'>";
+            $html .= "<input 
+                          type='checkbox' 
+                          class='custom-control-input' 
+                          id='{$cfg['id']}' 
+                          name='{$name}' 
+                          {$req} {$dis}>";
+            $html .= "<label class='custom-control-label' for='{$cfg['id']}'>{$cfg['label']}</label>";
+            $html .= "</div>";
+            break;
+
+        // —— File input y rangos ——
+        case 'file':
+            $html .= "<div class='custom-file'>";
+            $html .= "<input 
+                          type='file' 
+                          class='custom-file-input' 
+                          id='{$cfg['id']}' 
+                          name='{$name}' 
+                          {$req} {$dis}>";
+            $html .= "<label class='custom-file-label' for='{$cfg['id']}'>{$cfg['placeholder']}</label>";
+            $html .= "</div>";
+            break;
+
+        case 'range':
+            // custom-range y skins custom-range-danger, etc.
+            $html .= "<input 
+                          type='range' 
+                          class='custom-range custom-range-{$cfg['skin']}' 
+                          id='{$cfg['id']}' 
+                          name='{$name}' 
+                          value='{$cfg['value']}' 
+                          {$req} {$dis}>";
+            break;
+
+        // —— Inputs HTML5 extendidos (date, time, color…) ——
+        case 'date':
+        case 'time':
+        case 'color':
+        case 'datetime-local':
+        case 'month':
+        case 'week':
+            $html .= "<input 
+                          type='{$cfg['type']}' 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          class='{$cfg['class']}' 
+                          value='{$cfg['value']}' 
+                          placeholder='{$cfg['placeholder']}' 
+                          {$req} {$dis}>";
+            break;
+
+        // —— Plugins avanzados que requieren JS/CSS externos ——
+        case 'inputmask':
+            // data-inputmask y máscaras específicas
+            $html .= "<input 
+                          type='text' 
+                          data-inputmask='{$cfg['config']['mask']}' 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          class='{$cfg['class']}'>";
+            break;
+
+        case 'colorpicker':
+            // Bootstrap Colorpicker (itsjavi.com)
+            $html .= "<div class='input-group my-colorpicker2'>";
+            $html .= "<input 
+                          type='text' 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          class='{$cfg['class']}' 
+                          value='{$cfg['value']}' 
+                          {$req} {$dis}>";
+            $html .= "<div class='input-group-append'>
+                          <span class='input-group-text'>
+                            <i class='fas fa-square'></i>
+                          </span>
+                      </div>";
+            $html .= "</div>";
+            break;
+
+        case 'timepicker':
+            // Tempus Dominus / time picker
+            $html .= "<div class='input-group date' id='timepicker_{$cfg['id']}'>
+                          <div class='input-group-prepend' data-target='#timepicker_{$cfg['id']}' data-toggle='datetimepicker'>
+                              <div class='input-group-text'>
+                                  <i class='far fa-clock'></i>
+                              </div>
+                          </div>
+                          <input 
+                              type='text' 
+                              class='form-control datetimepicker-input' 
+                              data-target='#timepicker_{$cfg['id']}'
+                              name='{$name}'>
+                      </div>";
+            break;
+
+        case 'datepicker':
+        case 'daterangepicker':
+            // Date Picker / Date Range Picker (temporizadores y Moment.js) :contentReference[oaicite:8]{index=8}
+            $pickerCls = ($cfg['type'] === 'daterangepicker') ? 'daterange' : 'date';
+            $html .= "<div class='input-group {$pickerCls}' id='{$cfg['id']}' data-target-input='nearest'>";
+            $html .= "<input 
+                          type='text' 
+                          class='form-control datetimepicker-input' 
+                          data-target='#{$cfg['id']}' 
+                          name='{$name}'>";
+            $html .= "<div class='input-group-append' data-target='#{$cfg['id']}' data-toggle='datetimepicker'>
+                          <div class='input-group-text'><i class='fa fa-calendar'></i></div>
+                      </div>";
+            $html .= "</div>";
+            break;
+
+        case 'bs-stepper':
+            // Pasos de formulario con bs-stepper
+            $html .= "<div class='bs-stepper' id='{$cfg['id']}'> …</div>";
+            break;
+
+        case 'dropzone':
+            // Dropzone.js
+            $html .= "<form 
+                          id='dropzone_{$cfg['id']}' 
+                          class='dropzone'>…</form>";
+            break;
+
+        case 'richtext':
+            // Summernote o similar
+            $html .= "<textarea 
+                          class='textarea' 
+                          id='{$cfg['id']}' 
+                          name='{$name}' 
+                          placeholder='{$cfg['placeholder']}'>
+                      {$cfg['value']}</textarea>";
+            break;
+
+        default:
+            // Cualquier otro tipo de <input>
+            $html .= "<input 
+                          type='{$cfg['type']}' 
+                          name='{$name}' 
+                          id='{$cfg['id']}' 
+                          class='{$cfg['class']}' 
+                          value='{$cfg['value']}' 
+                          placeholder='{$cfg['placeholder']}' 
+                          {$req} {$dis}>";
+            break;
+    }
+
+    // Input Group: cerrar
+    if ($cfg['prepend'] || $cfg['append'] || $cfg['icon'])
+    {
+        if ($cfg['append'])
+        {
+            $html .= "<div class='input-group-append'>{$cfg['append']}</div>";
+        }
         $html .= "</div>";
     }
 
-    $html .= "<input type='{$config['type']}' 
-                     name='{$config['name']}' 
-                     id='{$config['id']}' 
-                     class='{$config['class']}' 
-                     value='{$config['value']}' 
-                     placeholder='{$config['placeholder']}' 
-                     {$required} {$disabled}>";
-
-    if ($config['icon'])
+    // Help text / validación
+    if ($cfg['help_text'])
     {
-        $html .= "</div>";
+        $html .= "<small class='form-text text-muted'>{$cfg['help_text']}</small>";
     }
 
-    if ($config['help_text'])
-    {
-        $html .= "<small class='form-text text-muted'>{$config['help_text']}</small>";
-    }
-
-    $html .= "</div>";
-
-    return $html;
-}
-
-function renderSelectField($options = [])
-{
-    $defaults = [
-        'name' => '',
-        'id' => '',
-        'label' => '',
-        'options' => [],
-        'selected' => '',
-        'multiple' => false,
-        'required' => false,
-        'class' => 'form-control'
-    ];
-
-    $config = array_merge($defaults, $options);
-    $multiple = $config['multiple'] ? 'multiple' : '';
-    $required = $config['required'] ? 'required' : '';
-    $name = $config['multiple'] ? $config['name'] . '[]' : $config['name'];
-
-    $html = "<div class='form-group'>";
-    if ($config['label'])
-    {
-        $html .= "<label for='{$config['id']}'>{$config['label']}</label>";
-    }
-
-    $html .= "<select name='{$name}' id='{$config['id']}' class='{$config['class']}' {$multiple} {$required}>";
-
-    foreach ($config['options'] as $value => $text)
-    {
-        $selected = ($value == $config['selected']) ? 'selected' : '';
-        $html .= "<option value='{$value}' {$selected}>{$text}</option>";
-    }
-
-    $html .= "</select></div>";
+    $html .= "</div>"; // .form-group
 
     return $html;
 }
