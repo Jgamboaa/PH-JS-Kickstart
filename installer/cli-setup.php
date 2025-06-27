@@ -169,6 +169,12 @@ else
         echo "Por favor, ejecuta manualmente 'composer install' para completar la instalación.\n\n";
     }
 
+    if (!$setup->migrationsRun && !$setup->seedsRun && $setup->composerInstalled)
+    {
+        echo colorText("\n⚠️ Aviso: No se pudieron ejecutar las migraciones y semillas automáticamente.\n", 'warning');
+        echo "Por favor, ejecuta manualmente 'php setup_db.php' para completar la instalación de la base de datos.\n\n";
+    }
+
     echo colorText("Instalación completada con éxito.\n", 'success');
     echo "Puedes acceder al sistema con las siguientes credenciales:\n";
     echo "Usuario: $adminEmail\n";

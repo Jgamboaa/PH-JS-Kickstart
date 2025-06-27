@@ -23,6 +23,12 @@ class Setup
     public $composerOutput = '';
     public $composerInstalled = false;
 
+    // Variables de estado adicionales para migraciones
+    public $migrationsRun = false;
+    public $seedsRun = false;
+    public $migrationOutput = '';
+    public $seedOutput = '';
+
     // Datos del formulario
     private $dbHost;
     private $dbUser;
@@ -126,24 +132,50 @@ class Setup
     {
         try
         {
-            // Ejecutar los pasos de instalación
+            // Ejecutar los pasos de instalación (orden modificado)
             $this->checkDatabaseConnection();
             $this->createDatabaseIfNeeded();
             $this->checkWritePermissions();
             $this->createEnvFile();
-            $this->importDatabase();
-            $this->createAdminUser();
+
+            // Instalar dependencias primero
             $this->installComposerDependencies();
+
+            // Ejecutar migraciones y semillas solo si las dependencias están instaladas
+            if ($this->composerInstalled)
+            {
+                $this->runMigrations();
+                $this->runSeeds();
+                // No necesitamos importar la base de datos ni crear admin
+                // manualmente ya que esto lo hacen las migraciones y semillas
+            }
+            else
+            {
+                // Fallback al método antiguo si no se pueden instalar dependencias
+                $this->importDatabase();
+                $this->createAdminUser();
+            }
 
             $this->installed = true;
             $this->message = "¡Configuración completada! El sistema ha sido inicializado correctamente.";
-            if ($this->dbImported)
-            {
-                $this->message .= " La estructura de la base de datos ha sido importada y el usuario administrador ha sido creado.";
-            }
+
             if ($this->composerInstalled)
             {
                 $this->message .= " Las dependencias de Composer han sido instaladas.";
+            }
+
+            if ($this->migrationsRun)
+            {
+                $this->message .= " Las migraciones se han ejecutado correctamente.";
+            }
+            else if ($this->dbImported)
+            {
+                $this->message .= " La estructura de la base de datos ha sido importada.";
+            }
+
+            if ($this->seedsRun || $this->dbImported)
+            {
+                $this->message .= " El usuario administrador ha sido creado.";
             }
         }
         catch (Exception $e)
@@ -475,5 +507,182 @@ class Setup
         }
 
         return $randomString;
+    }
+
+    /**
+     * Ejecuta las migraciones de Phinx
+     */
+    private function runMigrations()
+    {
+        $rootPath = dirname(__DIR__);
+        $phinxPath = $this->findPhinxPath();
+
+        if (!$phinxPath)
+        {
+            throw new Exception("No se encontró Phinx en la carpeta vendor/bin. Asegúrate de que se hayan instalado las dependencias correctamente.");
+        }
+
+        // Intentar ejecutar las migraciones a través de setup_db.php
+        if (file_exists($rootPath . '/setup_db.php'))
+        {
+            // Definir la constante para indicar que se está ejecutando desde el instalador
+            define('RUNNING_FROM_INSTALLER', true);
+
+            try
+            {
+                // Incluir el archivo setup_db.php que ejecutará las migraciones
+                require_once $rootPath . '/setup_db.php';
+                $this->migrationsRun = true;
+                $this->seedsRun = true;
+                return true;
+            }
+            catch (Exception $e)
+            {
+                throw new Exception("Error al ejecutar las migraciones: " . $e->getMessage());
+            }
+        }
+
+        // Si llegamos aquí, usar el método anterior (directo)
+        $command = "$phinxPath migrate";
+
+        if ($this->isCli)
+        {
+            // En modo CLI, mostramos el progreso directamente
+            echo "Ejecutando migraciones...\n";
+            echo "Comando: $command\n";
+            if (function_exists('passthru'))
+            {
+                passthru($command, $returnCode);
+            }
+            else
+            {
+                $this->migrationOutput = shell_exec($command);
+                echo $this->migrationOutput;
+                $returnCode = 0; // Asumimos éxito si no podemos capturar el código de retorno
+            }
+        }
+        else
+        {
+            // En modo web, capturamos la salida
+            if (function_exists('exec'))
+            {
+                exec($command . " 2>&1", $output, $returnCode);
+                $this->migrationOutput = implode("\n", $output);
+            }
+            else if (function_exists('shell_exec'))
+            {
+                $this->migrationOutput = shell_exec($command . " 2>&1");
+                $returnCode = 0; // Asumimos éxito
+            }
+            else
+            {
+                throw new Exception("No se pueden ejecutar comandos del sistema para las migraciones.");
+            }
+        }
+
+        $this->migrationsRun = ($returnCode === 0);
+
+        if (!$this->migrationsRun)
+        {
+            throw new Exception("Error al ejecutar las migraciones. Por favor revisa los logs para más detalles.");
+        }
+
+        return $this->migrationsRun;
+    }
+
+    /**
+     * Ejecuta las semillas de Phinx
+     */
+    private function runSeeds()
+    {
+        // Si ya se ejecutaron las semillas junto con las migraciones, no hacer nada
+        if ($this->seedsRun)
+        {
+            return true;
+        }
+
+        $rootPath = dirname(__DIR__);
+        $phinxPath = $this->findPhinxPath();
+
+        if (!$phinxPath)
+        {
+            throw new Exception("No se encontró Phinx en la carpeta vendor/bin.");
+        }
+
+        // Ejecutar semillas
+        $command = "$phinxPath seed:run";
+
+        if ($this->isCli)
+        {
+            // En modo CLI, mostramos el progreso directamente
+            echo "Ejecutando semillas...\n";
+            echo "Comando: $command\n";
+            if (function_exists('passthru'))
+            {
+                passthru($command, $returnCode);
+            }
+            else
+            {
+                $this->seedOutput = shell_exec($command);
+                echo $this->seedOutput;
+                $returnCode = 0; // Asumimos éxito si no podemos capturar el código de retorno
+            }
+        }
+        else
+        {
+            // En modo web, capturamos la salida
+            if (function_exists('exec'))
+            {
+                exec($command . " 2>&1", $output, $returnCode);
+                $this->seedOutput = implode("\n", $output);
+            }
+            else if (function_exists('shell_exec'))
+            {
+                $this->seedOutput = shell_exec($command . " 2>&1");
+                $returnCode = 0; // Asumimos éxito
+            }
+            else
+            {
+                throw new Exception("No se pueden ejecutar comandos del sistema para las semillas.");
+            }
+        }
+
+        $this->seedsRun = ($returnCode === 0);
+
+        if (!$this->seedsRun)
+        {
+            throw new Exception("Error al ejecutar las semillas. Por favor revisa los logs para más detalles.");
+        }
+
+        return $this->seedsRun;
+    }
+
+    /**
+     * Encuentra la ruta de Phinx
+     */
+    private function findPhinxPath()
+    {
+        $rootPath = dirname(__DIR__);
+        $isWindows = PHP_OS === 'WINNT';
+
+        // Verificar si Phinx está disponible
+        $phinxBin = $isWindows ? 'vendor/bin/phinx.bat' : 'vendor/bin/phinx';
+        $phinxPath = $rootPath . '/' . $phinxBin;
+
+        if (file_exists($phinxPath))
+        {
+            return 'php "' . $phinxPath . '"';
+        }
+
+        // Verificar ubicación alternativa
+        $phinxBin = 'vendor/bin/phinx';
+        $phinxPath = $rootPath . '/' . $phinxBin;
+
+        if (file_exists($phinxPath))
+        {
+            return 'php "' . $phinxPath . '"';
+        }
+
+        return null;
     }
 }

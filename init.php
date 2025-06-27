@@ -16,6 +16,10 @@ $dbImported = $setup->dbImported;
 $canInstallComposer = $setup->canExecuteSystemCommands();
 $composerOutput = $setup->composerOutput;
 $composerInstalled = $setup->composerInstalled;
+$migrationsRun = $setup->migrationsRun;
+$seedsRun = $setup->seedsRun;
+$migrationOutput = $setup->migrationOutput;
+$seedOutput = $setup->seedOutput;
 ?>
 <!DOCTYPE html>
 <html lang="es">
@@ -124,11 +128,35 @@ $composerInstalled = $setup->composerInstalled;
                             <i class="bi bi-info-circle-fill me-2"></i> Resultado de la instalación de dependencias:
                             <div class="composer-output"><?php echo nl2br(htmlspecialchars($composerOutput)); ?></div>
                         </div>
-                    <?php elseif ($installed && !$composerInstalled && $canInstallComposer): ?>
+                    <?php endif; ?>
+
+                    <?php if ($migrationOutput): ?>
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i> Resultado de las migraciones:
+                            <div class="composer-output"><?php echo nl2br(htmlspecialchars($migrationOutput)); ?></div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($seedOutput): ?>
+                        <div class="alert alert-info" role="alert">
+                            <i class="bi bi-info-circle-fill me-2"></i> Resultado de las semillas:
+                            <div class="composer-output"><?php echo nl2br(htmlspecialchars($seedOutput)); ?></div>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($installed && !$composerInstalled && $canInstallComposer): ?>
                         <div class="alert alert-warning" role="alert">
                             <i class="bi bi-exclamation-triangle-fill me-2"></i> No se pudieron instalar las dependencias de Composer automáticamente.
                             <p>Por favor, ejecuta manualmente el siguiente comando en la terminal:</p>
                             <code>composer install</code>
+                        </div>
+                    <?php endif; ?>
+
+                    <?php if ($installed && $composerInstalled && !$migrationsRun && !$seedsRun): ?>
+                        <div class="alert alert-warning" role="alert">
+                            <i class="bi bi-exclamation-triangle-fill me-2"></i> No se pudieron ejecutar las migraciones y semillas automáticamente.
+                            <p>Por favor, ejecuta manualmente el siguiente comando en la terminal:</p>
+                            <code>php setup_db.php</code>
                         </div>
                     <?php endif; ?>
                 <?php endif; ?>
