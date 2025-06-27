@@ -9,6 +9,7 @@
 - **Respaldos de base de datos**: Funciones para exportar y enviar respaldos por correo
 - **Migraciones de base de datos**: Sistema para gestionar cambios en la estructura de la BD
 - **Correos transaccionales**: Configuración SMTP para envío de notificaciones
+- **ORM integrado**: RedBeanPHP para mapeo objeto-relacional y manipulación de datos
 
 ## Dependencias del sistema
 
@@ -20,6 +21,8 @@ El sistema utiliza varias bibliotecas y dependencias que se instalan automática
 - **TCPDF (v6.9.4)**: Alternativa para generación de PDF con soporte para headers/footers personalizados
 - **OTPHP (v11.3.0)**: Implementación de códigos OTP para autenticación de dos factores (2FA)
 - **DB-Dumper (v3.8.0)**: Herramienta para la exportación e importación de bases de datos
+- **RedBeanPHP (v5.7)**: ORM (Object-Relational Mapping) para el mapeo y manipulación de datos de manera fluida
+- **Phinx (v0.16.9)**: Sistema de migraciones de base de datos para gestionar cambios en la estructura
 
 ### Requisitos del servidor
 
@@ -145,6 +148,129 @@ El sistema utiliza un archivo .env para gestionar la configuración. Las princip
 - APP_NAME, APP_TIMEZONE: Configuración general de la aplicación
 
 Estas variables pueden ser modificadas desde el panel de administración en Sistema > Variables de Entorno.
+
+## ORM - RedBeanPHP
+
+El sistema utiliza [RedBeanPHP](https://redbeanphp.com/) como ORM (Object-Relational Mapping) para la interacción con la base de datos. RedBeanPHP es un ORM de configuración cero que facilita el trabajo con bases de datos relacionales.
+
+### Características principales del ORM
+
+- **Configuración cero**: No requiere archivos de configuración complejos
+- **Mapeo automático**: Crea automáticamente tablas y columnas según sea necesario
+- **Sintaxis fluida**: API intuitiva y fácil de usar
+- **Soporte para relaciones**: Manejo sencillo de relaciones entre tablas
+- **Validación integrada**: Sistema de validación de datos incorporado
+
+### Ejemplos de uso básico
+
+#### Crear y guardar un registro
+
+```php
+<?php
+// Crear un nuevo bean (registro)
+$usuario = R::dispense('usuario');
+$usuario->nombre = 'Juan Pérez';
+$usuario->email = 'juan@ejemplo.com';
+$usuario->created_at = date('Y-m-d H:i:s');
+
+// Guardar en la base de datos
+$id = R::store($usuario);
+```
+
+#### Buscar registros
+
+```php
+<?php
+// Buscar por ID
+$usuario = R::load('usuario', $id);
+
+// Buscar con condiciones
+$usuarios = R::find('usuario', 'email = ?', ['juan@ejemplo.com']);
+
+// Buscar todos los registros
+$todosLosUsuarios = R::findAll('usuario');
+
+// Buscar con ORDER BY y LIMIT
+$usuarios = R::find('usuario', 'ORDER BY created_at DESC LIMIT 10');
+```
+
+#### Actualizar registros
+
+```php
+<?php
+// Cargar el registro
+$usuario = R::load('usuario', $id);
+
+// Modificar propiedades
+$usuario->nombre = 'Juan Carlos Pérez';
+$usuario->updated_at = date('Y-m-d H:i:s');
+
+// Guardar cambios
+R::store($usuario);
+```
+
+#### Eliminar registros
+
+```php
+<?php
+// Eliminar un registro específico
+$usuario = R::load('usuario', $id);
+R::trash($usuario);
+
+// O eliminar directamente por ID
+R::trash('usuario', $id);
+
+// Eliminar múltiples registros
+R::trashAll(R::find('usuario', 'status = ?', ['inactivo']));
+```
+
+#### Trabajar con relaciones
+
+```php
+<?php
+// Crear relación uno a muchos
+$usuario = R::dispense('usuario');
+$usuario->nombre = 'Juan';
+
+$post = R::dispense('post');
+$post->titulo = 'Mi primer post';
+$post->contenido = 'Contenido del post...';
+
+// Asociar el post al usuario
+$usuario->ownPostList[] = $post;
+R::store($usuario);
+
+// Acceder a posts de un usuario
+$usuario = R::load('usuario', $id);
+$posts = $usuario->ownPostList;
+
+// Relación muchos a muchos
+$tag = R::dispense('tag');
+$tag->nombre = 'PHP';
+
+$post->sharedTagList[] = $tag;
+R::store($post);
+```
+
+### Configuración en el sistema
+
+La configuración de RedBeanPHP se realiza automáticamente durante la inicialización del sistema, utilizando las credenciales de base de datos definidas en el archivo `.env`.
+
+```php
+<?php
+// Configuración automática (ya incluida en el sistema)
+R::setup($dsn, $username, $password);
+R::freeze(true); // Congela el esquema en producción
+```
+
+### Buenas prácticas
+
+- **Congelar en producción**: Usar `R::freeze(true)` para evitar cambios automáticos en el esquema
+- **Validación**: Implementar validaciones antes de guardar datos
+- **Transacciones**: Usar transacciones para operaciones complejas
+- **Nomenclatura**: Seguir convenciones de nomenclatura consistentes para tablas y campos
+
+Para más información sobre RedBeanPHP, consulta la [documentación oficial](https://redbeanphp.com/index.php?p=/crud).
 
 ## Migraciones de Base de Datos
 
