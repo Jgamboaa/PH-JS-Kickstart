@@ -89,7 +89,7 @@ if (isset($_POST['login_password']) && isset($_POST['csrf_token']) && $_POST['cs
 					$_SESSION['device_token'] = $device_token;
 
 					// Registramos la sesión para este dispositivo
-					registerDeviceSession($row['id'], $device_token, $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
+					registerDeviceSession($admin->id, $device_token, $_SERVER['REMOTE_ADDR'], $_SERVER['HTTP_USER_AGENT']);
 
 					// Almacenamos IP y user agent para seguimiento
 					$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
