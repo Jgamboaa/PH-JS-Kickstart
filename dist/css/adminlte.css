@@ -57,6 +57,11 @@ html {
   -webkit-tap-highlight-color: rgba(0, 0, 0, 0);
 }
 
+body::-webkit-scrollbar {
+  width: 0px;
+  background: transparent; /* Opcional, solo para asegurar la transparencia */
+}
+
 article,
 aside,
 figcaption,

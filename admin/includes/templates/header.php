@@ -12,7 +12,7 @@
   <link rel="stylesheet" href="../plugins/dropzone/min/dropzone.min.css">
   <link rel="stylesheet" href="../dist/css/adminlte.css">
   <link rel="stylesheet" href="../dist/css/icons.css">
-  <link rel="stylesheet" href="../dist/css/hrms.css">
+  <link rel="stylesheet" href="../dist/css/core.css">
   <link rel="stylesheet" href="../plugins/overlayScrollbars/css/OverlayScrollbars.min.css">
   <link rel="stylesheet" href="../plugins/daterangepicker/daterangepicker.css">
   <link rel="stylesheet" href="../plugins/timepicker/bootstrap-timepicker.min.css">
