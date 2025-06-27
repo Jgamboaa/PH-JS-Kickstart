@@ -135,6 +135,7 @@ composer install
 ```
 
 ## Configuración de variables de entorno
+
 El sistema utiliza un archivo .env para gestionar la configuración. Las principales variables son:
 
 - DB_HOST, DB_USER, DB_PASS, DB_NAME: Configuración de la base de datos
@@ -147,38 +148,67 @@ Estas variables pueden ser modificadas desde el panel de administración en Sist
 
 ## Migraciones de Base de Datos
 
-El sistema cuenta con un módulo de migraciones para gestionar la estructura y objetos de la base de datos:
+El sistema utiliza [Phinx](https://phinx.org/) como herramienta de migración para gestionar la estructura de base de datos y datos iniciales. Esto permite una instalación más robusta y la posibilidad de actualizar la estructura de la base de datos de manera controlada.
 
 ### Estructura de directorios
 
-- `/migrations/functions/` - Funciones SQL
-- `/migrations/triggers/` - Triggers SQL
-- `/migrations/procedures/` - Procedimientos almacenados
+- `/db/migrations/` - Contiene los archivos de migración para crear y modificar tablas
+- `/db/seeds/` - Contiene los archivos de semillas para poblar las tablas con datos iniciales
 
-### Uso del comando de migración
+### Uso de comandos de migración
 
-Para ejecutar migraciones específicas, utilice el siguiente comando:
-
-```bash
-php migrations/migrate.php [tipo]
-```
-
-Donde `[tipo]` puede ser:
-
-- `functions` - Para migrar funciones SQL
-- `triggers` - Para migrar triggers de la base de datos
-- `procedures` - Para migrar procedimientos almacenados
-
-### Ejemplo:
+Los siguientes comandos están disponibles para gestionar las migraciones (requieren que Composer esté instalado):
 
 ```bash
-# Migrar todas las funciones
-php migrations/migrate.php functions
+# Ejecutar todas las migraciones pendientes
+vendor/bin/phinx migrate
 
-# Migrar todos los triggers
-php migrations/migrate.php triggers
+# Ejecutar semillas (datos iniciales)
+vendor/bin/phinx seed:run
+
+# Crear una nueva migración
+vendor/bin/phinx create NombreDeMigracion
+
+# Crear una nueva semilla
+vendor/bin/phinx seed:create NombreDeSemilla
+
+# Revertir la última migración
+vendor/bin/phinx rollback
 ```
 
-Los archivos SQL deben incluir sentencias `DELIMITER` y `DROP IF EXISTS` para manejar adecuadamente la creación y actualización de objetos existentes.
+### Migración automática durante la instalación
+
+Durante el proceso de instalación del sistema, las migraciones y semillas se ejecutan automáticamente para configurar la base de datos y crear el usuario administrador con los datos proporcionados en el formulario de instalación.
+
+### Ejemplo de creación de una migración personalizada
+
+Si necesitas crear una nueva tabla o modificar una existente, puedes crear una migración:
+
+```bash
+vendor/bin/phinx create AddNuevaCampoATabla
+```
+
+Esto generará un archivo en la carpeta `/db/migrations/` que puedes editar:
+
+```php
+<?php
+// En el método up() defines los cambios a realizar
+public function up()
+{
+    $table = $this->table('nombre_tabla');
+    $table->addColumn('nuevo_campo', 'string', ['limit' => 100])
+          ->update();
+}
+
+// En el método down() defines cómo revertir los cambios
+public function down()
+{
+    $table = $this->table('nombre_tabla');
+    $table->removeColumn('nuevo_campo')
+          ->update();
+}
+```
+
+Para más información sobre cómo usar Phinx, consulta la [documentación oficial](https://book.cakephp.org/phinx/0/en/index.html).
 
 [![Ask DeepWiki](https://deepwiki.com/badge.svg)](https://deepwiki.com/Jgamboaa/PH-JS-Kickstart)
