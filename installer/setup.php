@@ -47,6 +47,9 @@ class Setup
     private $adminLastname;
     private $adminGender;
 
+    // Variables para datos del administrador temporales
+    private $adminConfigFile;
+
     /**
      * Constructor de la clase
      */
@@ -60,6 +63,7 @@ class Setup
         $this->envExampleFile = dirname(__DIR__) . '/.env_example';
         $this->sqlFile = dirname(__DIR__) . '/config/core.sql';
         $this->adminSqlFile = dirname(__DIR__) . '/config/usuario_admin.sql';
+        $this->adminConfigFile = dirname(__DIR__) . '/tmp/admin_config.json';
 
         // Verificar si ya existe el .env
         if (file_exists($this->envFile))
@@ -138,6 +142,9 @@ class Setup
             $this->checkWritePermissions();
             $this->createEnvFile();
 
+            // Guardar los datos del administrador para que los use el seeder
+            $this->saveAdminConfigForSeeder();
+
             // Instalar dependencias primero
             $this->installComposerDependencies();
 
@@ -155,6 +162,9 @@ class Setup
                 $this->importDatabase();
                 $this->createAdminUser();
             }
+
+            // Limpiar el archivo de configuración temporal
+            $this->cleanupTempFiles();
 
             $this->installed = true;
             $this->message = "¡Configuración completada! El sistema ha sido inicializado correctamente.";
@@ -181,6 +191,7 @@ class Setup
         catch (Exception $e)
         {
             $this->error = $e->getMessage();
+            $this->cleanupTempFiles();
         }
     }
 
@@ -530,14 +541,19 @@ class Setup
 
             try
             {
+                // Capturar la salida
+                ob_start();
                 // Incluir el archivo setup_db.php que ejecutará las migraciones
                 require_once $rootPath . '/setup_db.php';
+                $this->migrationOutput = ob_get_clean();
+
                 $this->migrationsRun = true;
                 $this->seedsRun = true;
                 return true;
             }
             catch (Exception $e)
             {
+                $this->migrationOutput = ob_get_clean();
                 throw new Exception("Error al ejecutar las migraciones: " . $e->getMessage());
             }
         }
@@ -552,7 +568,9 @@ class Setup
             echo "Comando: $command\n";
             if (function_exists('passthru'))
             {
+                ob_start();
                 passthru($command, $returnCode);
+                $this->migrationOutput = ob_get_clean();
             }
             else
             {
@@ -619,7 +637,9 @@ class Setup
             echo "Comando: $command\n";
             if (function_exists('passthru'))
             {
+                ob_start();
                 passthru($command, $returnCode);
+                $this->seedOutput = ob_get_clean();
             }
             else
             {
@@ -655,6 +675,41 @@ class Setup
         }
 
         return $this->seedsRun;
+    }
+
+    /**
+     * Guarda los datos del administrador en un archivo temporal para que lo use el seeder
+     */
+    private function saveAdminConfigForSeeder()
+    {
+        // Crear directorio tmp si no existe
+        $tmpDir = dirname(__DIR__) . '/tmp';
+        if (!is_dir($tmpDir))
+        {
+            mkdir($tmpDir, 0755, true);
+        }
+
+        $adminData = [
+            'email' => $this->adminEmail,
+            'password' => password_hash($this->adminPassword, PASSWORD_DEFAULT),
+            'firstname' => $this->adminFirstname,
+            'lastname' => $this->adminLastname,
+            'gender' => $this->adminGender,
+            'created_on' => date('Y-m-d')
+        ];
+
+        file_put_contents($this->adminConfigFile, json_encode($adminData));
+    }
+
+    /**
+     * Limpia archivos temporales
+     */
+    private function cleanupTempFiles()
+    {
+        if (file_exists($this->adminConfigFile))
+        {
+            unlink($this->adminConfigFile);
+        }
     }
 
     /**

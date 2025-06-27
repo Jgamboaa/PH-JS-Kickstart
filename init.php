@@ -77,18 +77,32 @@ $seedOutput = $setup->seedOutput;
         }
 
         .composer-output {
-            background-color: #f8f9fa;
-            border: 1px solid #dee2e6;
+            background-color: #1e1e1e;
+            border: 1px solid #343434;
             border-radius: 4px;
-            padding: 10px;
-            font-family: monospace;
-            max-height: 200px;
+            padding: 12px;
+            font-family: 'Courier New', monospace;
+            max-height: 250px;
             overflow-y: auto;
-            font-size: 0.85rem;
+            font-size: 0.9rem;
             margin-top: 10px;
+            color: #eaeaea;
+            white-space: pre-wrap;
         }
 
-        /* Nuevo estilos para el overlay de carga */
+        .composer-output .success {
+            color: #4caf50;
+        }
+
+        .composer-output .error {
+            color: #f44336;
+        }
+
+        .composer-output .warning {
+            color: #ff9800;
+        }
+
+        /* Overlay de carga */
         #loadingOverlay {
             display: none;
             position: fixed;
@@ -126,21 +140,21 @@ $seedOutput = $setup->seedOutput;
                     <?php if ($composerOutput): ?>
                         <div class="alert alert-info" role="alert">
                             <i class="bi bi-info-circle-fill me-2"></i> Resultado de la instalación de dependencias:
-                            <div class="composer-output"><?php echo nl2br(htmlspecialchars($composerOutput)); ?></div>
+                            <div class="composer-output"><?php echo formatConsoleOutput($composerOutput); ?></div>
                         </div>
                     <?php endif; ?>
 
                     <?php if ($migrationOutput): ?>
                         <div class="alert alert-info" role="alert">
                             <i class="bi bi-info-circle-fill me-2"></i> Resultado de las migraciones:
-                            <div class="composer-output"><?php echo nl2br(htmlspecialchars($migrationOutput)); ?></div>
+                            <div class="composer-output"><?php echo formatConsoleOutput($migrationOutput); ?></div>
                         </div>
                     <?php endif; ?>
 
                     <?php if ($seedOutput): ?>
                         <div class="alert alert-info" role="alert">
                             <i class="bi bi-info-circle-fill me-2"></i> Resultado de las semillas:
-                            <div class="composer-output"><?php echo nl2br(htmlspecialchars($seedOutput)); ?></div>
+                            <div class="composer-output"><?php echo formatConsoleOutput($seedOutput); ?></div>
                         </div>
                     <?php endif; ?>
 
@@ -423,3 +437,22 @@ $seedOutput = $setup->seedOutput;
 </body>
 
 </html>
+
+<?php
+/**
+ * Formatea la salida de consola para mostrarla mejor en la UI
+ */
+function formatConsoleOutput($output)
+{
+    // Colorear mensajes de éxito
+    $output = preg_replace('/(success|completed|finalizado|exitosamente|migrated|seeded|created|OK)/i', '<span class="success">$1</span>', $output);
+
+    // Colorear errores
+    $output = preg_replace('/(error|failed|exception|fatal|warning|invalid)/i', '<span class="error">$1</span>', $output);
+
+    // Colorear advertencias
+    $output = preg_replace('/(warning|attention|note|aviso)/i', '<span class="warning">$1</span>', $output);
+
+    return $output;
+}
+?>
