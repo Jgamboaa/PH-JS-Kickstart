@@ -13,6 +13,7 @@ $pass = env('DB_PASS');
 $db   = env('DB_NAME');
 $port = env('DB_PORT', '3306'); // Puerto por defecto para MySQL
 $charset = env('DB_CHARSET', 'utf8mb4'); // Charset por defecto para MySQL
+$environment = env('APP_ENV', 'development');
 
 // Construir el DSN de la conexión
 $dsn = "mysql:host=$host;dbname=$db;charset=$charset;port=$port";
@@ -34,7 +35,6 @@ try
 
     // Modo de congelación (freeze = false en desarrollo, true en producción)
     // En modo desarrollo, RedBean puede modificar esquemas automáticamente
-    $environment = env('APP_ENV', 'development');
     R::freeze($environment === 'production');
 
     // Configurar opciones adicionales de RedBeanPHP
