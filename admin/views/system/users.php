@@ -1,4 +1,7 @@
 <?php
+// Importar RedBeanPHP
+use RedBeanPHP\R as R;
+
 include '../../includes/session.php';
 
 $admin_id = $user['id'];
@@ -116,11 +119,9 @@ else
                             <label for="roles_ids" class="control-label">Roles</label>
                             <select class="form-control" multiple="" name="roles_ids[]" id="roles_ids" required>
                                 <?php
-                                $sql = "SELECT * FROM roles";
-                                $query = $conn->query($sql);
-                                while ($rrow = $query->fetch())
-                                {
-                                    echo "<option value='" . $rrow['id'] . "'>" . $rrow['nombre'] . "</option>";
+                                $roles = R::findAll('roles');
+                                foreach ($roles as $role) {
+                                    echo "<option value='" . $role->id . "'>" . $role->nombre . "</option>";
                                 }
                                 ?>
                             </select>
