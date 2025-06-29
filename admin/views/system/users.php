@@ -3,6 +3,9 @@
 use RedBeanPHP\R as R;
 
 include '../../includes/session.php';
+// Incluir componentes reutilizables
+include '../../components/form_fields.php';
+include '../../components/modal.php';
 
 $admin_id = $user['id'];
 $roles_ids = explode(',', $user['roles_ids']);
@@ -45,164 +48,184 @@ else
         </div>
     </section>
 
+    <?php
+    // Crear formulario para el modal de administración de usuarios
+    $formContent = '
+        <form id="admin_form" enctype="multipart/form-data">
+            <!-- Campos ocultos para controlar la acción y el ID del empleado -->
+            <input type="hidden" id="admin_crud" name="crud">
+            <input type="hidden" id="admin_id" name="id">
+            
+            <!-- Mostrar la foto actual del empleado en edición -->
+            <div class="form-group text-center" id="current_photo">
+                <img src="" width="200px" class="img-circle">
+            </div>
 
-    <div class="modal fade" id="admin_modal">
-        <div class="modal-dialog modal-lg modal-dialog-scrollable" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <b class="modal-title" id="admin_modal_label">Agregar/Editar Usuario</b>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+            <div class="row">
+                <div class="col-lg-6">
+                    ' . renderFormField([
+        'type' => 'text',
+        'name' => 'usuario',
+        'id' => 'usuario',
+        'label' => 'Usuario',
+        'required' => true
+    ]) . '
                 </div>
-                <div class="modal-body">
-                    <form id="admin_form" enctype="multipart/form-data">
-
-                        <!-- Campos ocultos para controlar la acción y el ID del empleado -->
-                        <input type="hidden" id="admin_crud" name="crud">
-                        <input type="hidden" id="admin_id" name="id">
-                        <!-- Mostrar la foto actual del empleado en edición -->
-                        <div class="form-group text-center" id="current_photo">
-                            <img src="" width="200px" class="img-circle">
-                        </div>
-
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="form-group">
-                                    <label for="usuario" class="control-label">Usuario</label>
-                                    <input type="text" class="form-control" id="usuario" name="usuario" required>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="form-group">
-                                    <label for="password" class="control-label">Contraseña</label>
-                                    <input type="password" class="form-control" id="password" name="password" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="form-group">
-                                    <label for="firstname" class="control-label">Nombre</label>
-                                    <input type="text" class="form-control" id="firstname" name="firstname" required>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="form-group">
-                                    <label for="lastname" class="control-label">Apellido</label>
-                                    <input type="text" class="form-control" id="lastname" name="lastname" required>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="row">
-                            <div class="col-lg-6">
-                                <div class="form-group">
-                                    <label for="photo" class="control-label">Foto</label>
-                                    <div class="custom-file">
-                                        <input type="file" class="custom-file-input" id="photo" name="photo">
-                                        <label class="custom-file-label" for="photo"></label>
-                                    </div>
-                                </div>
-                            </div>
-                            <div class="col-lg-6">
-                                <div class="form-group">
-                                    <label for="gender" class="control-label">Género</label>
-                                    <select class="form-control" name="gender" id="gender" required>
-                                        <option value=""></option>
-                                        <option value="0">Masculino</option>
-                                        <option value="1">Femenino</option>
-                                    </select>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="form-group">
-                            <label for="roles_ids" class="control-label">Roles</label>
-                            <select class="form-control" multiple="" name="roles_ids[]" id="roles_ids" required>
-                                <?php
-                                $roles = R::findAll('roles');
-                                foreach ($roles as $role) {
-                                    echo "<option value='" . $role->id . "'>" . $role->nombre . "</option>";
-                                }
-                                ?>
-                            </select>
-                        </div>
-
-                        <!-- Campo 2FA requerido - Visible siempre (creación y edición) -->
-                        <div class="form-group">
-                            <label for="tfa_required" class="control-label">2FA requerido</label>
-                            <select class="form-control" id="tfa_required" name="tfa_required">
-                                <option value="0">Opcional</option>
-                                <option value="1">Obligatorio</option>
-                            </select>
-                            <small class="text-muted">Si es obligatorio, el usuario deberá configurar 2FA en su primer inicio de sesión</small>
-                        </div>
-
-                        <!-- Sección avanzada de 2FA - Solo visible en edición -->
-                        <div id="mfa_advanced_section" class="d-none">
-                            <hr>
-                            <h5>Configuración avanzada de Autenticación de Dos Factores (2FA)</h5>
-
-                            <div class="row mt-3">
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Estado actual de 2FA</label>
-                                        <div class="mt-2">
-                                            <span id="mfa_status_badge" class="badge badge-pill"></span>
-                                        </div>
-                                    </div>
-                                </div>
-                                <div class="col-md-6">
-                                    <div class="form-group">
-                                        <label>Acciones de administración</label>
-                                        <div class="row mt-2">
-                                            <div class="col-md-6">
-                                                <button type="button" class="btn btn-info btn-sm btn-block" id="btn_reset_mfa">
-                                                    <i class="fa-duotone fa-solid fa-shield-check"></i> Restablecer
-                                                </button>
-                                            </div>
-                                            <div class="col-md-6">
-                                                <button type="button" class="btn btn-warning btn-sm btn-block" id="btn_generate_codes">
-                                                    <i class="fa-duotone fa-solid fa-key"></i> Generar códigos
-                                                </button>
-                                            </div>
-                                        </div>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                    </form>
-                </div>
-                <div class="modal-footer justify-content-between">
-                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal"><i class="fa fa-times"></i>
-                        Cerrar</button>
-                    <button type="submit" class="btn btn-sm btn-primary" form="admin_form"><i class="fa fa-save"></i> Guardar</button>
+                <div class="col-lg-6">
+                    ' . renderFormField([
+        'type' => 'password',
+        'name' => 'password',
+        'id' => 'password',
+        'label' => 'Contraseña',
+        'required' => true
+    ]) . '
                 </div>
             </div>
-        </div>
-    </div>
-
-    <!-- Modal para mostrar códigos de respaldo -->
-    <div class="modal fade" id="backup_codes_modal">
-        <div class="modal-dialogn modal-dialog-scrollable" role="document">
-            <div class="modal-content">
-                <div class="modal-header">
-                    <b class="modal-title">Códigos de respaldo</b>
-                    <button type="button" class="close" data-dismiss="modal" aria-label="Cerrar">
-                        <span aria-hidden="true">&times;</span>
-                    </button>
+            
+            <div class="row">
+                <div class="col-lg-6">
+                    ' . renderFormField([
+        'type' => 'text',
+        'name' => 'firstname',
+        'id' => 'firstname',
+        'label' => 'Nombre',
+        'required' => true
+    ]) . '
                 </div>
-                <div class="modal-body">
-                    <p>Guarde estos códigos de respaldo en un lugar seguro. Cada código se puede usar una sola vez:</p>
-                    <div class="alert alert-warning">
-                        <ul id="backup_codes_list" class="mb-0"></ul>
+                <div class="col-lg-6">
+                    ' . renderFormField([
+        'type' => 'text',
+        'name' => 'lastname',
+        'id' => 'lastname',
+        'label' => 'Apellido',
+        'required' => true
+    ]) . '
+                </div>
+            </div>
+            
+            <div class="row">
+                <div class="col-lg-6">
+                    ' . renderFormField([
+        'type' => 'file',
+        'name' => 'photo',
+        'id' => 'photo',
+        'label' => 'Foto',
+        'placeholder' => ''
+    ]) . '
+                </div>
+                <div class="col-lg-6">
+                    ' . renderFormField([
+        'type' => 'select',
+        'name' => 'gender',
+        'id' => 'gender',
+        'label' => 'Género',
+        'required' => true,
+        'options' => [
+            '' => '',
+            '0' => 'Masculino',
+            '1' => 'Femenino'
+        ]
+    ]) . '
+                </div>
+            </div>
+            
+            ' . renderFormField([
+        'type' => 'select',
+        'name' => 'roles_ids',
+        'id' => 'roles_ids',
+        'label' => 'Roles',
+        'required' => true,
+        'multiple' => true,
+        'data_source' => R::findAll('roles'),
+        'value_field' => 'id',
+        'text_field' => 'nombre'
+    ]) . '
+            
+            ' . renderFormField([
+        'type' => 'select',
+        'name' => 'tfa_required',
+        'id' => 'tfa_required',
+        'label' => '2FA requerido',
+        'options' => [
+            '0' => 'Opcional',
+            '1' => 'Obligatorio'
+        ],
+        'help_text' => 'Si es obligatorio, el usuario deberá configurar 2FA en su primer inicio de sesión'
+    ]) . '
+            
+            <!-- Sección avanzada de 2FA - Solo visible en edición -->
+            <div id="mfa_advanced_section" class="d-none">
+                <hr>
+                <h5>Configuración avanzada de Autenticación de Dos Factores (2FA)</h5>
+
+                <div class="row mt-3">
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Estado actual de 2FA</label>
+                            <div class="mt-2">
+                                <span id="mfa_status_badge" class="badge badge-pill"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="form-group">
+                            <label>Acciones de administración</label>
+                            <div class="row mt-2">
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-info btn-sm btn-block" id="btn_reset_mfa">
+                                        <i class="fa-duotone fa-solid fa-shield-check"></i> Restablecer
+                                    </button>
+                                </div>
+                                <div class="col-md-6">
+                                    <button type="button" class="btn btn-warning btn-sm btn-block" id="btn_generate_codes">
+                                        <i class="fa-duotone fa-solid fa-key"></i> Generar códigos
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
                     </div>
                 </div>
-                <div class="modal-footer">
-                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cerrar</button>
-                    <button type="button" class="btn btn-sm btn-primary" id="copy_backup_codes">Copiar códigos</button>
-                </div>
             </div>
+        </form>
+    ';
+
+    // Botones para el footer del modal
+    $footerContent = '
+        <button type="button" class="btn btn-sm btn-default" data-dismiss="modal"><i class="fa fa-times"></i> Cerrar</button>
+        <button type="submit" class="btn btn-sm btn-primary" form="admin_form"><i class="fa fa-save"></i> Guardar</button>
+    ';
+
+    // Renderizar el modal principal
+    echo renderModal([
+        'id' => 'admin_modal',
+        'title' => 'Agregar/Editar Usuario',
+        'size' => 'modal-lg',
+        'scrollable' => true,
+        'body' => $formContent,
+        'footer' => $footerContent
+    ]);
+
+    // Contenido para el modal de códigos de respaldo
+    $backupCodesBody = '
+        <p>Guarde estos códigos de respaldo en un lugar seguro. Cada código se puede usar una sola vez:</p>
+        <div class="alert alert-warning">
+            <ul id="backup_codes_list" class="mb-0"></ul>
         </div>
-    </div>
+    ';
+
+    $backupCodesFooter = '
+        <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">Cerrar</button>
+        <button type="button" class="btn btn-sm btn-primary" id="copy_backup_codes">Copiar códigos</button>
+    ';
+
+    // Renderizar el modal de códigos de respaldo
+    echo renderModal([
+        'id' => 'backup_codes_modal',
+        'title' => 'Códigos de respaldo',
+        'scrollable' => true,
+        'body' => $backupCodesBody,
+        'footer' => $backupCodesFooter
+    ]);
+    ?>
 <?php
 }
