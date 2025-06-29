@@ -18,6 +18,10 @@ function renderFormField(array $options = [])
         'options'       => [],        // ['value'=>'Texto']
         'selected'      => null,
         'multiple'      => false,
+        // Nuevas opciones para selects dinámicos
+        'data_source'   => null,      // Fuente de datos (resultados de consulta)
+        'value_field'   => 'id',      // Campo a usar como valor
+        'text_field'    => 'nombre',  // Campo a usar como texto
         // Para skins de iCheck / custom-range
         'skin'          => 'primary', // primary, danger, success, teal…
         // Para plugins avanzados
@@ -104,11 +108,29 @@ function renderFormField(array $options = [])
                           id='{$cfg['id']}' 
                           class='{$selClass}' 
                           {$multi} {$req} {$dis}>";
-            foreach ($cfg['options'] as $val => $txt)
+
+            // Procesar opciones del select
+            if ($cfg['data_source'])
             {
-                $sel = ($val == $cfg['selected']) ? 'selected' : '';
-                $html .= "<option value='{$val}' {$sel}>{$txt}</option>";
+                // Opción 1: Fuente de datos dinámica (resultados de consulta)
+                foreach ($cfg['data_source'] as $item)
+                {
+                    $value = $item->{$cfg['value_field']};
+                    $text = $item->{$cfg['text_field']};
+                    $sel = ($value == $cfg['selected']) ? 'selected' : '';
+                    $html .= "<option value='{$value}' {$sel}>{$text}</option>";
+                }
             }
+            else
+            {
+                // Opción 2: Array de opciones estático
+                foreach ($cfg['options'] as $val => $txt)
+                {
+                    $sel = ($val == $cfg['selected']) ? 'selected' : '';
+                    $html .= "<option value='{$val}' {$sel}>{$txt}</option>";
+                }
+            }
+
             $html .= "</select>";
             break;
 
