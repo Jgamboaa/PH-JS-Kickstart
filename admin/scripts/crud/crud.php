@@ -225,17 +225,27 @@
                         $('.modal-header').removeClass('bg-primary').addClass('bg-success');
                         $('.modal-title').removeClass('text-primary').addClass('text-white');
 
+                        // Añadir una notificación sutil dentro del modal
+                        let notificationHtml = `
+                            <div class="alert alert-success alert-dismissible fade show" role="alert">
+                                <i class="fas fa-check-circle mr-2"></i>Datos cargados correctamente para <strong>${response.data.name}</strong>
+                                <button type="button" class="close" data-dismiss="alert" aria-label="Close">
+                                    <span aria-hidden="true">&times;</span>
+                                </button>
+                            </div>
+                        `;
+
+                        // Insertar la notificación al principio del formulario
+                        $('#client_form').prepend(notificationHtml);
+
+                        // Programar la desaparición automática de la alerta después de 3 segundos
+                        setTimeout(function() {
+                            $('.alert').alert('close');
+                        }, 3000);
+
+                        // Mostrar el modal inmediatamente
                         $('#client_modal').modal('show');
 
-                        // [Explicación] Mostrar información sobre la operación de carga
-                        Swal.fire({
-                            title: 'Datos cargados',
-                            html: `Se han cargado los datos del cliente <strong>${response.data.name}</strong>`,
-                            icon: 'info',
-                            timer: 2000,
-                            timerProgressBar: true,
-                            showConfirmButton: false
-                        });
                     } else {
                         Swal.fire({
                             title: response.message,
