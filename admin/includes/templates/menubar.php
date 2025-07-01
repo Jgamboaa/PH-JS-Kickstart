@@ -25,6 +25,7 @@
         <?php
         $roles_ids = explode(',', $user['roles_ids']);
         include('../admin/includes/menubar/home.php');
+        include('../admin/includes/menubar/crud.php');
         //panel de administrador
         if (in_array("1", $roles_ids))
         {

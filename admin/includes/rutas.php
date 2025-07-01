@@ -2,6 +2,7 @@
 // Importar todas las rutas
 $rutas = array_merge(
     require 'routes/home.php',
+    require 'routes/crud.php',
     require 'routes/system.php',
 );
 
