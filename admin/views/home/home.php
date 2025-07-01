@@ -331,41 +331,31 @@ vendor/bin/phinx create NombreDeMigracion</code></pre>
                     </div>
                     <div class="card-body">
                         <div class="row">
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <a href="https://github.com/Jgamboaa/PH-JS-Kickstart" class="btn btn-block btn-outline-primary" target="_blank">
                                     <i class="fab fa-github mr-2"></i> Repositorio en GitHub
                                 </a>
                             </div>
-                            <div class="col-md-3">
+                            <div class="col-md-4">
                                 <a href="https://deepwiki.com/Jgamboaa/PH-JS-Kickstart" class="btn btn-block btn-outline-info" target="_blank">
                                     <i class="fa fa-solid fa-duotone fa-lg fa-book mr-2"></i> Documentación (DeepWiki)
                                 </a>
                             </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-block btn-outline-success" onclick="window.location.href='../migrations/'">
-                                    <i class="fa fa-solid fa-duotone fa-lg fa-database mr-2"></i> Gestionar Migraciones
-                                </button>
-                            </div>
-                            <div class="col-md-3">
-                                <button class="btn btn-block btn-outline-warning" onclick="window.location.href='../settings/'">
+                            <div class="col-md-4">
+                                <button class="btn btn-block btn-outline-warning" onclick="window.location.href='#variables'">
                                     <i class="fa fa-solid fa-duotone fa-lg fa-cogs mr-2"></i> Variables de Entorno
                                 </button>
                             </div>
                         </div>
                         <div class="row mt-3">
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <a href="https://redbeanphp.com/index.php?p=/crud" class="btn btn-block btn-outline-danger" target="_blank">
                                     <i class="fa fa-solid fa-duotone fa-lg fa-database mr-2"></i> Documentación RedBeanPHP
                                 </a>
                             </div>
-                            <div class="col-md-4">
+                            <div class="col-md-6">
                                 <a href="https://book.cakephp.org/phinx/0/en/index.html" class="btn btn-block btn-outline-secondary" target="_blank">
                                     <i class="fa fa-solid fa-duotone fa-lg fa-code-branch mr-2"></i> Documentación Phinx
-                                </a>
-                            </div>
-                            <div class="col-md-4">
-                                <a href="../users/profile.php" class="btn btn-block btn-outline-dark">
-                                    <i class="fa fa-solid fa-duotone fa-lg fa-user-cog mr-2"></i> Mi Perfil
                                 </a>
                             </div>
                         </div>
@@ -373,5 +363,4 @@ vendor/bin/phinx create NombreDeMigracion</code></pre>
                 </div>
             </div>
         </div>
-    </div>
 </section>
