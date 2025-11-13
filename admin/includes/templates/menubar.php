@@ -8,8 +8,8 @@
   <!-- Sidebar -->
   <div class="sidebar">
     <!-- Sidebar user panel (optional) -->
-    <div class="user-panel mt-1 pb-1 mb-1 d-flex">
-      <div class="image mt-1 mb-1">
+    <div class="user-panel mt-3 pb-3 mb-3 d-flex">
+      <div class="image">
         <img
           src="<?php echo $photoSrc; ?>"
           class="img-circle" alt="User Image">
@@ -19,7 +19,7 @@
       </div>
     </div>
     <!-- Sidebar Menu -->
-    <nav class="mt-1 text-sm">
+    <nav class="mt-2 text-sm">
       <ul class="nav nav-pills nav-sidebar flex-column nav-child-indent" data-widget="treeview" role="menu"
         data-accordion="true">
         <?php
