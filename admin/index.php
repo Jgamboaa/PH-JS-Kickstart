@@ -1,8 +1,8 @@
 <?php
-// Verificar si existe el archivo .env, si no, redirigir al inicializador
+// Verificar si existe el archivo .env, si no, dar mensaje
 if (!file_exists(__DIR__ . '/../.env'))
 {
-  header('location:../init.php');
+  echo 'Realiza el proceso de instalación primero.';
   exit();
 }
 
