@@ -1,57 +1,12 @@
-# ======================================================================
-
-# Configuración de seguridad - Cabeceras
-
-# ======================================================================
+# Cache estáticos
 
 <IfModule mod_headers.c>
-    # HSTS (forzar HTTPS)
-    Header always set Strict-Transport-Security "max-age=31536000; includeSubDomains; preload" env=HTTPS
-    # Prevenir clickjacking
-    Header always set X-Frame-Options "DENY"
-    # Evitar inferencia de MIME types
-    Header always set X-Content-Type-Options "nosniff"
-    # Política de referidores
-    Header always set Referrer-Policy "strict-origin-when-cross-origin"
-    # Política de permisos
-    Header always set Permissions-Policy "geolocation=(self), microphone=()
-    # Protección básica XSS (legacy)
-    Header always set X-XSS-Protection "1; mode=block"
-    
-    # Eliminar cabeceras sensibles
-    Header unset Server
-    Header unset X-Powered-By
+  <FilesMatch "\.(css|js|jpg|jpeg|png|gif|webp|svg|ico)$">
+    Header set Cache-Control "public, max-age=31536000, immutable"
+  </FilesMatch>
 </IfModule>
 
-# ======================================================================
-
-# Content Security Policy (CSP) - ¡Personalizar según necesidades!
-
-# ======================================================================
-
-# <IfModule mod_headers.c>
-
-# Header always set Content-Security-Policy "default-src 'self'; script-src 'self' 'unsafe-inline' https:; img-src 'self' data:; style-src 'self' 'unsafe-inline'; font-src 'self'; frame-ancestors 'none'; form-action 'self';"
-
-# </IfModule>
-
-# ======================================================================
-
-# Redirección HTTP a HTTPS
-
-# ======================================================================
-
-<IfModule mod_rewrite.c>
-    RewriteEngine On
-    RewriteCond %{HTTPS} !=on
-    RewriteRule ^(.*)$ https://%{HTTP_HOST}/$1 [R=301,L]
-</IfModule>
-
-# ======================================================================
-
-# Manejo de errores
-
-# ======================================================================
+# Páginas de error
 
 ErrorDocument 400 /errors/400.php
 ErrorDocument 401 /errors/401.php
@@ -60,66 +15,36 @@ ErrorDocument 404 /errors/404.php
 ErrorDocument 500 /errors/500.php
 ErrorDocument 503 /errors/503.php
 
-# Bloquear acceso a archivos sensibles
+# Bloqueo de archivos sensibles
 
-<FilesMatch "(\.(env|log|sqlite|htaccess|env_example|sql)|composer\.(json|lock))$">
+<FilesMatch "(\.(env|log|sqlite|htaccess|env_example)|composer\.(json|lock))$">
+  Require all denied
+</FilesMatch>
+<FilesMatch "^(db_conn\.php|api_functions\.php|conn\.php)$">
 Require all denied
 </FilesMatch>
 
-# Prevenir acceso a directorios
+# 🔒 Denegar internals de admin (sustituye al DirectoryMatch)
 
-Options All -Indexes
+RewriteEngine On
+RewriteRule ^admin/(views|scripts)/?$ - [F,L]
 
-<Files "db_conn.php">
-Require all denied
-</Files>
-
-<Files "api_functions.php">
-Require all denied
-</Files>
-
-<Files "conn.php">
-Require all denied
-</Files>
-
-<Files ~ "\.sql$">
-Order allow,deny
-Deny from all
-</Files>
-
-# Protección adicional para archivos sensibles
-
-<FilesMatch "\.(htaccess|htpasswd|ini|log|sh|inc|bak|sql)$">
-Order Allow,Deny
-Deny from all
-</FilesMatch>
-
-# ======================================================================
-
-# Compresión gzip/deflate
-
-# ======================================================================
+# Compresión (si deflate está activo)
 
 <IfModule mod_deflate.c>
-  # Activar compresión para tipos de contenido comunes
-  AddOutputFilterByType DEFLATE \
-    text/plain \
-    text/html \
-    text/xml \
-    text/css \
-    application/xml \
-    application/xhtml+xml \
-    application/rss+xml \
-    application/javascript \
-    application/x-javascript
-
-# Excepciones para navegadores antiguos
-
-BrowserMatch ^Mozilla/4 gzip-only-text/html
-BrowserMatch ^Mozilla/4\.0[678] no-gzip
-BrowserMatch \bMSIE !no-gzip !gzip-only-text/html
-
-# Asegura que las respuestas varíen según el agente de usuario
-
-Header append Vary User-Agent
+  AddOutputFilterByType DEFLATE text/plain text/html text/xml text/css \
+    application/xml application/xhtml+xml application/rss+xml \
+    application/javascript application/x-javascript
+  Header append Vary User-Agent
 </IfModule>
+
+# Expiración (si expires está activo)
+
+<IfModule mod_expires.c>
+  ExpiresActive On
+  ExpiresByType image/jpeg "access plus 30 days"
+  ExpiresByType image/png  "access plus 30 days"
+  ExpiresByType image/gif  "access plus 30 days"
+</IfModule>
+
+Options -Indexes

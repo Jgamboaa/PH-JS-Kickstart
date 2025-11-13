@@ -1,12 +1,23 @@
 {
-    "require": {
-        "tecnickcom/tcpdf": "^6.8",
-        "phpmailer/phpmailer": "^6.9",
-        "phpoffice/phpspreadsheet": "^4.1",
-        "dompdf/dompdf": "^3.1",
-        "spomky-labs/otphp": "^11.3",
-        "spatie/db-dumper": "^3.8",
-        "robmorgan/phinx": "^0.16.9",
-        "gabordemooij/redbean": "^5.7"
-    }
+  "minimum-stability": "stable",
+  "prefer-stable": true,
+  "require": {
+    "phpmailer/phpmailer": "*",
+    "phpoffice/phpspreadsheet": "*",
+    "dompdf/dompdf": "*",
+    "tecnickcom/tcpdf": "*",
+    "spomky-labs/otphp": "*",
+    "spatie/db-dumper": "*",
+    "robmorgan/phinx": "*",
+    "gabordemooij/redbean": "*",
+    "firebase/php-jwt": "^6.11",
+    "vlucas/phpdotenv": "^5.6"
+  },
+  "scripts": {
+    "migrate": "php vendor/bin/phinx migrate -c phinx.php",
+    "seed": "php vendor/bin/phinx seed:run -c phinx.php",
+    "create": "php vendor/bin/phinx create -c phinx.php",
+    "rollback": "php vendor/bin/phinx rollback -c phinx.php",
+    "status": "php vendor/bin/phinx status -c phinx.php"
+  }
 }
