@@ -46,7 +46,7 @@ class UserSeeder extends AbstractSeed
             $this->table('admin')
                 ->insert([
                     'username' => 'admin@admin.com',
-                    'password' => '$2y$10$RT8BkA4YVF3e1PKyY4ZBlOk1B7wHD8gBiQAleFSPEjTEE98yJiXzm', // Contraseña: admin
+                    'password' => '$2y$10$RT8BkA4YVF3e1PKyY4ZBlOk1B7wHD8gBiQAleFSPEjTEE98yJiXzm', // Contraseña: Admin123
                     'user_firstname' => 'Usuario',
                     'user_lastname' => 'Administrador',
                     'photo' => '',
