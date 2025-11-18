@@ -2,8 +2,6 @@
 require_once __DIR__ . '/session_config.php';
 require_once dirname(__DIR__) . '/../config/db_conn.php';
 require_once __DIR__ . '/security_functions.php';
-// Importar RedBeanPHP
-use RedBeanPHP\R as R;
 
 date_default_timezone_set(env('APP_TIMEZONE'));
 $isDebug = env('APP_DEBUG') === 'true';
@@ -16,7 +14,7 @@ ini_set('error_log', __DIR__ . '/../../error.log');
 // Verificar y renovar la sesión
 function checkSession()
 {
-	global $conn;
+	global $pdo;
 	$max_lifetime = 30 * 24 * 60 * 60; // 30 días en segundos
 	$current_time = time();
 
@@ -26,9 +24,12 @@ function checkSession()
 		$admin_id = filter_var($_COOKIE['persistent_session'], FILTER_SANITIZE_NUMBER_INT);
 		if ($admin_id)
 		{
-			// Usar RedBeanPHP para verificar el usuario
-			$admin = R::load('admin', $admin_id);
-			if ($admin->id)
+			// Verificar el usuario usando PDO
+			$stmt = $pdo->prepare('SELECT id FROM admin WHERE id = :id LIMIT 1');
+			$stmt->execute([':id' => $admin_id]);
+			$admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+			if ($admin)
 			{
 				$_SESSION['admin'] = $admin_id;
 				$_SESSION['last_activity'] = $current_time;
@@ -151,19 +152,15 @@ function checkSession()
 	{
 		try
 		{
-			// Buscar la sesión activa existente
-			$activeSession = R::findOne(
-				'active_sessions',
-				'user_id = ? AND device_token = ?',
-				[$_SESSION['admin'], $_SESSION['device_token']]
-			);
-
-			// Si existe, actualizar la última actividad
-			if ($activeSession)
-			{
-				$activeSession->last_activity = R::isoDateTime();
-				R::store($activeSession);
-			}
+			// Actualizar la última actividad de la sesión activa
+			$stmt = $pdo->prepare('UPDATE active_sessions 
+					SET last_activity = :last_activity 
+					WHERE user_id = :user_id AND device_token = :device_token');
+			$stmt->execute([
+				':last_activity' => date('Y-m-d H:i:s'),
+				':user_id'       => $_SESSION['admin'],
+				':device_token'  => $_SESSION['device_token'],
+			]);
 		}
 		catch (Exception $e)
 		{
@@ -175,16 +172,20 @@ function checkSession()
 // Función para registrar cambios de dispositivo para auditoría
 function logDeviceChange($user_id, $change_type, $old_value, $new_value)
 {
+	global $pdo;
+
 	try
 	{
-		// Crear un nuevo registro de log usando RedBeanPHP
-		$log = R::dispense('session_logs');
-		$log->user_id = $user_id;
-		$log->log_type = $change_type;
-		$log->old_value = $old_value;
-		$log->new_value = $new_value;
-		$log->created_at = R::isoDateTime();
-		R::store($log);
+		// Crear un nuevo registro de log usando PDO en la tabla session_logs
+		$stmt = $pdo->prepare('INSERT INTO session_logs (user_id, log_type, old_value, new_value, created_at) 
+                VALUES (:user_id, :log_type, :old_value, :new_value, :created_at)');
+		$stmt->execute([
+			':user_id'    => $user_id,
+			':log_type'   => $change_type,
+			':old_value'  => $old_value,
+			':new_value'  => $new_value,
+			':created_at' => date('Y-m-d H:i:s'),
+		]);
 	}
 	catch (Exception $e)
 	{
@@ -200,8 +201,20 @@ if (!isset($_SESSION['admin']) || trim($_SESSION['admin']) == '')
 	exit();
 }
 
-// Cargar información del usuario con RedBeanPHP
-$user = R::load('admin', $_SESSION['admin'])->export();
+// Cargar información del usuario con PDO
+global $pdo;
+$stmt = $pdo->prepare('SELECT * FROM admin WHERE id = :id LIMIT 1');
+$stmt->execute([':id' => $_SESSION['admin']]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
+if (!$user)
+{
+	// Si no se encuentra el usuario, cerrar sesión por seguridad
+	$_SESSION = [];
+	session_destroy();
+	header('location: index.php');
+	exit();
+}
 
 // Verificar si el usuario tiene MFA requerido pero no habilitado
 if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
@@ -224,12 +237,16 @@ if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
 }
 
 // Actualizar last_login time usando RedBeanPHP
-$admin = R::load('admin', $_SESSION['admin']);
-$admin->last_login = date('Y-m-d H:i:s');
-R::store($admin);
+$stmtUpdate = $pdo->prepare('UPDATE admin SET last_login = :last_login WHERE id = :id');
+$stmtUpdate->execute([
+	':last_login' => date('Y-m-d H:i:s'),
+	':id'         => $_SESSION['admin'],
+]);
 
-// Obtener datos de la empresa usando RedBeanPHP
-$company = R::load('company_data', 1)->export();
+// Obtener datos de la empresa usando PDO
+$stmtCompany = $pdo->prepare('SELECT * FROM company_data WHERE id = 1 LIMIT 1');
+$stmtCompany->execute();
+$company = $stmtCompany->fetch(PDO::FETCH_ASSOC) ?: [];
 
 $company_name = $company['company_name'];
 $company_name_short = $company['company_name_short'];

@@ -15,9 +15,5 @@ return [
     'roles' => [
         'vista' => 'views/system/roles.php',
         'scripts' => ['scripts/system/roles.php']
-    ],
-    'variables' => [
-        'vista' => 'views/system/variables.php',
-        'scripts' => ['scripts/system/variables.php']
     ]
 ];

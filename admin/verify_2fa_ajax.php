@@ -4,9 +4,6 @@ require_once dirname(__DIR__) . '/config/db_conn.php';
 require_once 'includes/functions/2fa_functions.php';
 require_once 'includes/security_functions.php';
 
-// Usar RedBeanPHP
-use RedBeanPHP\R as R;
-
 // Asegurar que la solicitud sea mediante AJAX
 if (empty($_SERVER['HTTP_X_REQUESTED_WITH']) || strtolower($_SERVER['HTTP_X_REQUESTED_WITH']) != 'xmlhttprequest')
 {
@@ -49,10 +46,13 @@ if (empty($code))
     exit(json_encode(['status' => false, 'message' => 'Por favor ingresa un código']));
 }
 
-// Obtener información del usuario
-$user = R::load('admin', $userId);
+// Obtener información del usuario usando PDO
+global $pdo;
+$stmt = $pdo->prepare('SELECT id, tfa_secret, last_login, admin_gender, user_firstname FROM admin WHERE id = :id LIMIT 1');
+$stmt->execute([':id' => $userId]);
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
 
-if (!$user->id)
+if (!$user)
 {
     exit(json_encode(['status' => false, 'message' => 'Usuario no encontrado']));
 }
@@ -72,7 +72,7 @@ if ($useBackupCode)
 else
 {
     // Verificar código TOTP
-    $verification_success = verifyOTP($user->tfa_secret, $code);
+    $verification_success = verifyOTP($user['tfa_secret'], $code);
     if (!$verification_success)
     {
         exit(json_encode(['status' => false, 'message' => 'Código de verificación inválido']));
@@ -82,9 +82,15 @@ else
 // Si la verificación es exitosa, completar el inicio de sesión
 if ($verification_success)
 {
+    // Guardar si es el primer login antes de actualizar
+    $isFirstLogin = empty($user['last_login']);
+
     // Actualizar último login
-    $user->last_login = R::isoDateTime();
-    R::store($user);
+    $stmt = $pdo->prepare('UPDATE admin SET last_login = :last_login WHERE id = :id');
+    $stmt->execute([
+        ':last_login' => date('Y-m-d H:i:s'),
+        ':id'         => $userId,
+    ]);
 
     // Eliminar estado pendiente 2FA
     unset($_SESSION['2fa_pending']);
@@ -95,19 +101,19 @@ if ($verification_success)
     $_SESSION['last_activity'] = time();
 
     // Preparar mensaje de bienvenida
-    if (empty($user->last_login))
+    if ($isFirstLogin)
     {
-        $saludo_login = ($user->admin_gender == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
+        $saludo_login = ($user['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
     }
     else
     {
-        $saludo_login = ($user->admin_gender == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
+        $saludo_login = ($user['admin_gender'] == '0') ? "¡Bienvenido de nuevo" : "¡Bienvenida de nuevo";
     }
 
     // Devolver éxito
     exit(json_encode([
         'status' => true,
-        'message' => $saludo_login . ' ' . $user->user_firstname . '!',
+        'message' => $saludo_login . ' ' . $user['user_firstname'] . '!',
         'redirect_url' => 'home.php'
     ]));
 }

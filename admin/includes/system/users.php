@@ -2,7 +2,9 @@
 include '../session.php';
 include '../../controllers/system/users.php';
 
-$userController = new UserController($conn);
+// Usar la conexión PDO global
+global $pdo;
+$userController = new UserController($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {

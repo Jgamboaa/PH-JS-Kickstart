@@ -3,7 +3,6 @@ require_once dirname(__DIR__, 3) . '/vendor/autoload.php';
 
 use OTPHP\TOTP;
 use ParagonIE\ConstantTime\Base32;
-use RedBeanPHP\R as R;
 
 /**
  * Genera un nuevo secreto para TOTP
@@ -68,15 +67,19 @@ function generateBackupCodes($count = 10)
  */
 function verifyBackupCode($adminId, $code)
 {
-    // Obtener información del administrador
-    $admin = R::load('admin', $adminId);
+    // Usar PDO para obtener la información del administrador
+    global $pdo;
 
-    if (!$admin->id || empty($admin->tfa_backup_codes))
+    $stmt = $pdo->prepare('SELECT id, tfa_backup_codes FROM admin WHERE id = :id');
+    $stmt->execute([':id' => $adminId]);
+    $admin = $stmt->fetch(PDO::FETCH_ASSOC);
+
+    if (!$admin || empty($admin['tfa_backup_codes']))
     {
         return false;
     }
 
-    $backupCodes = json_decode($admin->tfa_backup_codes, true);
+    $backupCodes = json_decode($admin['tfa_backup_codes'], true);
     if (!is_array($backupCodes))
     {
         return false;
@@ -89,8 +92,11 @@ function verifyBackupCode($adminId, $code)
         unset($backupCodes[$key]);
 
         // Actualizar los códigos en la base de datos
-        $admin->tfa_backup_codes = json_encode(array_values($backupCodes));
-        R::store($admin);
+        $stmt = $pdo->prepare('UPDATE admin SET tfa_backup_codes = :codes WHERE id = :id');
+        $stmt->execute([
+            ':codes' => json_encode(array_values($backupCodes)),
+            ':id'    => $adminId,
+        ]);
 
         return true;
     }

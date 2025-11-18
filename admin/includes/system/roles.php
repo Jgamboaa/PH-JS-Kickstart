@@ -2,7 +2,9 @@
 include '../session.php';
 include '../../controllers/system/roles.php';
 
-$roleController = new RoleController($conn);
+// Usar la conexión PDO global
+global $pdo;
+$roleController = new RoleController($pdo);
 
 if ($_SERVER['REQUEST_METHOD'] === 'POST')
 {
