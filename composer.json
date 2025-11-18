@@ -9,7 +9,6 @@
     "spomky-labs/otphp": "*",
     "spatie/db-dumper": "*",
     "robmorgan/phinx": "*",
-    "gabordemooij/redbean": "*",
     "firebase/php-jwt": "^6.11",
     "vlucas/phpdotenv": "^5.6"
   },
