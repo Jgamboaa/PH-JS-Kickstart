@@ -21,9 +21,9 @@ else
         <div class="container-fluid content-header">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <a id="addnew" class="btn btn-sm btn-primary"><i class="fa fa-duotone fa-solid fa-plus fa-lg"></i></a>
-                    <a class="btn btn-sm btn-warning btn-backup"><i class="fa fa-duotone fa-solid fa-server fa-lg"></i></a>
-                    <a class="btn btn-sm btn-info btn-email-backup"><i class="fa fa-duotone fa-solid fa-paper-plane-top fa-lg"></i></a>
+                    <a id="addnew" class="btn btn-sm btn-primary"><i class="fa fa-duotone fa-solid fa-plus fa-lg" data-toggle="tooltip" title="Agregar Usuario"></i></a>
+                    <a class=" btn btn-sm btn-warning btn-backup"><i class="fa fa-duotone fa-solid fa-server fa-lg" data-toggle="tooltip" title="Generar respaldo"></i></a>
+                    <a class="btn btn-sm btn-info btn-email-backup"><i class="fa fa-duotone fa-solid fa-paper-plane-top fa-lg" data-toggle="tooltip" title="Enviar respaldo por correo"></i></a>
                 </div>
             </div>
         </div>

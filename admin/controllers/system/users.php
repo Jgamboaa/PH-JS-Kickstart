@@ -301,10 +301,10 @@ class UserController
                     $photoPath : "../../../images/admins/profile.png";
 
                 $acciones = '
-                    <button class="btn btn-sm btn-success edit" data-id="' . $user['id'] . '">
+                    <button class="btn btn-sm btn-success edit" data-id="' . $user['id'] . '" data-toggle="tooltip" title="Editar Usuario">
                         <i class="fa-duotone fa-solid fa-pen fa-lg"></i>
                     </button>
-                    <button class="btn btn-sm btn-danger delete" data-id="' . $user['id'] . '">
+                    <button class="btn btn-sm btn-danger delete" data-id="' . $user['id'] . '" data-toggle="tooltip" title="Eliminar Usuario">
                         <i class="fa-duotone fa-solid fa-trash-xmark fa-lg"></i>
                     </button>
                 ';
@@ -313,10 +313,10 @@ class UserController
                 if ($current_user_id != $user['id'])
                 {
                     $acciones .= '
-                        <button class="btn btn-sm btn-info reset-2fa" data-id="' . $user['id'] . '" title="Restablecer 2FA">
+                        <button class="btn btn-sm btn-info reset-2fa" data-id="' . $user['id'] . '" data-toggle="tooltip" title="Restablecer 2FA">
                             <i class="fa-duotone fa-solid fa-shield-check fa-lg"></i>
                         </button>
-                        <button class="btn btn-sm btn-warning new-backup-codes" data-id="' . $user['id'] . '" title="Generar códigos de respaldo">
+                        <button class="btn btn-sm btn-warning new-backup-codes" data-id="' . $user['id'] . '" data-toggle="tooltip" title="Generar códigos de respaldo">
                             <i class="fa-duotone fa-solid fa-key fa-lg"></i>
                         </button>
                     ';

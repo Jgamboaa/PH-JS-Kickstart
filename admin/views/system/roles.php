@@ -17,9 +17,7 @@ else
         <div class="container-fluid content-header">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <a id="add" class="btn btn-sm btn-primary">
-                        <i class="fa-solid fa-plus"></i>
-                    </a>
+                    <a id="add" class="btn btn-sm btn-primary"><i class="fa fa-duotone fa-solid fa-plus fa-lg" data-toggle="tooltip" title="Agregar Rol"></i></a>
                 </div>
             </div>
         </div>

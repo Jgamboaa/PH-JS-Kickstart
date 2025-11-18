@@ -43,6 +43,11 @@
             stateSave: true,
             language: {
                 url: '../dist/js/spanish.json'
+            },
+            drawCallback: function() {
+                $('[data-toggle="tooltip"]').tooltip({
+                    trigger: 'hover'
+                });
             }
         });
 

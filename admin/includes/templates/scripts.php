@@ -111,6 +111,9 @@ if (!isset($range_to))
         theme: "bootstrap4"
       });
 
+      $('[data-toggle="tooltip"]').tooltip({
+        trigger: 'hover'
+      });
       // Reinicializar custom file input
       bsCustomFileInput.init();
     }

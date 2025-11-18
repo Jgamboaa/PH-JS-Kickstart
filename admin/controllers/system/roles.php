@@ -101,7 +101,7 @@ class RoleController
                 $data[] = [
                     'id'      => $role['id'],
                     'nombre'  => $role['nombre'],
-                    'actions' => '<button class="btn btn-success btn-sm edit-btn" data-id="' . $role['id'] . '"><i class="fa-duotone fa-solid fa-pen fa-lg"></i></button>'
+                    'actions' => '<button class="btn btn-success btn-sm edit-btn" data-id="' . $role['id'] . '" data-toggle="tooltip" title="Editar Rol"><i class="fa-duotone fa-solid fa-pen fa-lg"></i></button>'
                 ];
             }
 
