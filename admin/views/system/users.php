@@ -1,7 +1,4 @@
 <?php
-// Importar RedBeanPHP
-use RedBeanPHP\R as R;
-
 include '../../includes/session.php';
 // Incluir componentes reutilizables
 include '../../components/form_fields.php';
@@ -9,6 +6,12 @@ include '../../components/modal.php';
 
 $admin_id = $user['id'];
 $roles_ids = explode(',', $user['roles_ids']);
+
+// Obtener listado de roles usando PDO para el formulario
+global $pdo;
+$stmtRoles = $pdo->prepare('SELECT id, nombre FROM roles');
+$stmtRoles->execute();
+$rolesData = $stmtRoles->fetchAll(PDO::FETCH_OBJ);
 
 if (!in_array(1, $roles_ids))
 {
@@ -136,7 +139,7 @@ else
         'label' => 'Roles',
         'required' => true,
         'multiple' => true,
-        'data_source' => R::findAll('roles'),
+        'data_source' => $rolesData,
         'value_field' => 'id',
         'text_field' => 'nombre'
     ]) . '
