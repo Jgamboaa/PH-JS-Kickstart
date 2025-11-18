@@ -1,27 +1,28 @@
 <?php
-// Importar RedBeanPHP
-use RedBeanPHP\R as R;
 
 class RoleController
 {
-    private $conn;
+    /**
+     * @var PDO
+     */
+    private $pdo;
 
-    public function __construct($conn)
+    public function __construct(PDO $pdo)
     {
-        $this->conn = $conn;
-        // RedBeanPHP ya está configurado en db_conn.php, así que no es necesario inicializarlo aquí
+        $this->pdo = $pdo;
     }
 
     public function createRole($data)
     {
         try
         {
-            // Crear un bean de rol
-            $role = R::dispense('roles');
-            $role->nombre = $data['nombre'];
+            // Insertar nuevo rol usando PDO
+            $stmt = $this->pdo->prepare('INSERT INTO roles (nombre) VALUES (:nombre)');
+            $stmt->execute([
+                ':nombre' => $data['nombre'],
+            ]);
 
-            // Guardar el bean y obtener el ID
-            $id = R::store($role);
+            $id = $this->pdo->lastInsertId();
 
             if ($id)
             {
@@ -38,19 +39,22 @@ class RoleController
     {
         try
         {
-            // Cargar el rol existente
-            $role = R::load('roles', $data['id']);
+            // Verificar que el rol existe
+            $stmt = $this->pdo->prepare('SELECT id FROM roles WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $data['id']]);
+            $role = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$role->id)
+            if (!$role)
             {
                 return ['status' => false, 'message' => 'Rol no encontrado'];
             }
 
             // Actualizar propiedades
-            $role->nombre = $data['nombre'];
-
-            // Guardar cambios
-            R::store($role);
+            $stmtUpdate = $this->pdo->prepare('UPDATE roles SET nombre = :nombre WHERE id = :id');
+            $stmtUpdate->execute([
+                ':nombre' => $data['nombre'],
+                ':id'     => $data['id'],
+            ]);
 
             return ['status' => true, 'message' => 'Rol actualizado'];
         }
@@ -64,16 +68,17 @@ class RoleController
     {
         try
         {
-            // Cargar el rol por ID
-            $role = R::load('roles', $id);
+            // Cargar el rol por ID usando PDO
+            $stmt = $this->pdo->prepare('SELECT * FROM roles WHERE id = :id LIMIT 1');
+            $stmt->execute([':id' => $id]);
+            $role = $stmt->fetch(PDO::FETCH_ASSOC);
 
-            if (!$role->id)
+            if (!$role)
             {
                 return null;
             }
 
-            // Convertir el bean a un array asociativo
-            return $role->export();
+            return $role;
         }
         catch (Exception $e)
         {
@@ -85,16 +90,18 @@ class RoleController
     {
         try
         {
-            // Obtener todos los roles
-            $roles = R::findAll('roles');
+            // Obtener todos los roles usando PDO
+            $stmt = $this->pdo->prepare('SELECT * FROM roles');
+            $stmt->execute();
+            $roles = $stmt->fetchAll(PDO::FETCH_ASSOC);
 
             $data = [];
             foreach ($roles as $role)
             {
                 $data[] = [
-                    'id' => $role->id,
-                    'nombre' => $role->nombre,
-                    'actions' => '<button class="btn btn-success btn-sm edit-btn" data-id="' . $role->id . '"><i class="fa-duotone fa-solid fa-pen fa-lg"></i></button>'
+                    'id'      => $role['id'],
+                    'nombre'  => $role['nombre'],
+                    'actions' => '<button class="btn btn-success btn-sm edit-btn" data-id="' . $role['id'] . '"><i class="fa-duotone fa-solid fa-pen fa-lg"></i></button>'
                 ];
             }
 
