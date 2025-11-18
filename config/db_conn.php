@@ -2,8 +2,6 @@
 require_once __DIR__ . '/env_reader.php';
 require_once __DIR__ . '/../vendor/autoload.php';
 
-use RedBeanPHP\R as R;
-
 // --- 1) Configuración común ---
 $config = [
     'host'        => env('DB_HOST'),
@@ -31,7 +29,7 @@ $pdoOptions = [
     PDO::ATTR_EMULATE_PREPARES   => false,
 ];
 
-// --- 1) PDO Connection ---
+// --- 2) PDO Connection ---
 try
 {
     $pdo = new PDO($dsn, $config['user'], $config['pass'], $pdoOptions);

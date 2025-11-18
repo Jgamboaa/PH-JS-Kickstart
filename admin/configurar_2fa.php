@@ -3,9 +3,6 @@ require_once 'includes/session.php';
 require_once 'includes/functions/2fa_functions.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 
-// Usar RedBeanPHP
-use RedBeanPHP\R as R;
-
 // Redirigir al nuevo sistema basado en modal
 header('Location: configurar_2fa_redirect.php');
 exit();

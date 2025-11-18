@@ -1,9 +1,6 @@
 <?php
 include 'functions/mail_functions.php';
 
-// Usar RedBeanPHP
-use RedBeanPHP\R as R;
-
 function generateCSRFToken()
 {
     if (!isset($_SESSION['csrf_token']))
@@ -15,20 +12,25 @@ function generateCSRFToken()
 
 function checkLoginAttempts($username, $mail_support)
 {
-    $loginAttempt = R::findOne('loginattempts', 'username = ?', [$username]);
+    // Usar PDO y la tabla login_attempts
+    global $pdo;
+
+    $stmt = $pdo->prepare('SELECT login_attempts, last_attempt FROM login_attempts WHERE username = :username');
+    $stmt->execute([':username' => $username]);
+    $loginAttempt = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($loginAttempt)
     {
         $bloqueo = false;
         $tiempoBloqueo = 0;
-        $lastAttemptTime = strtotime($loginAttempt->last_attempt);
+        $lastAttemptTime = $loginAttempt['last_attempt'] ? strtotime($loginAttempt['last_attempt']) : 0;
 
-        if ($loginAttempt->login_attempts >= 3 && time() - $lastAttemptTime < 180)
+        if ($loginAttempt['login_attempts'] >= 3 && time() - $lastAttemptTime < 180)
         {
             $bloqueo = true;
             $tiempoBloqueo = 3;
         }
-        elseif ($loginAttempt->login_attempts >= 6 && time() - $lastAttemptTime < 300)
+        elseif ($loginAttempt['login_attempts'] >= 6 && time() - $lastAttemptTime < 300)
         {
             $bloqueo = true;
             $tiempoBloqueo = 5;
@@ -44,7 +46,7 @@ function checkLoginAttempts($username, $mail_support)
                 <p>Se ha detectado un bloqueo de cuenta con los siguientes detalles:</p>
                 <ul>
                     <li><strong>Usuario:</strong> {$username}</li>
-                    <li><strong>Intentos fallidos:</strong> {$loginAttempt->login_attempts}</li>
+                    <li><strong>Intentos fallidos:</strong> {$loginAttempt['login_attempts']}</li>
                     <li><strong>Tiempo de bloqueo:</strong> {$tiempoBloqueo} minutos</li>
                     <li><strong>IP:</strong> {$_SERVER['REMOTE_ADDR']}</li>
                     <li><strong>Fecha y hora:</strong> " . date('d/m/Y H:i:s') . "</li>
@@ -62,38 +64,43 @@ function checkLoginAttempts($username, $mail_support)
 
 function updateLoginAttempts($username)
 {
-    $loginAttempt = R::findOne('loginattempts', 'username = ?', [$username]);
+    global $pdo;
+
+    // Comprobar si ya existe un registro para este usuario
+    $stmt = $pdo->prepare('SELECT id, login_attempts FROM login_attempts WHERE username = :username');
+    $stmt->execute([':username' => $username]);
+    $loginAttempt = $stmt->fetch(PDO::FETCH_ASSOC);
 
     if ($loginAttempt)
     {
         // Actualizar intento existente
-        $loginAttempt->login_attempts += 1;
-        $loginAttempt->last_attempt = R::isoDateTime();
+        $stmt = $pdo->prepare('UPDATE login_attempts SET login_attempts = login_attempts + 1, last_attempt = NOW() WHERE id = :id');
+        $stmt->execute([':id' => $loginAttempt['id']]);
     }
     else
     {
         // Crear nuevo registro de intento
-        $loginAttempt = R::dispense('loginattempts');
-        $loginAttempt->username = $username;
-        $loginAttempt->login_attempts = 1;
-        $loginAttempt->last_attempt = R::isoDateTime();
+        $stmt = $pdo->prepare('INSERT INTO login_attempts (username, login_attempts, last_attempt) VALUES (:username, 1, NOW())');
+        $stmt->execute([':username' => $username]);
     }
-
-    R::store($loginAttempt);
 }
 
 function resetLoginAttempts($username)
 {
-    $loginAttempts = R::find('loginattempts', 'username = ?', [$username]);
-    R::trashAll($loginAttempts);
+    global $pdo;
+
+    $stmt = $pdo->prepare('DELETE FROM login_attempts WHERE username = :username');
+    $stmt->execute([':username' => $username]);
 }
 
 function logLoginActivity($username, $success)
 {
-    $loginLog = R::dispense('loginlogs');
-    $loginLog->username = $username;
-    $loginLog->status = $success ? 'success' : 'failed';
-    $loginLog->ip_address = $_SERVER['REMOTE_ADDR'];
-    $loginLog->created_at = R::isoDateTime();
-    R::store($loginLog);
+    global $pdo;
+
+    $stmt = $pdo->prepare('INSERT INTO login_logs (username, status, ip_address, created_at) VALUES (:username, :status, :ip_address, NOW())');
+    $stmt->execute([
+        ':username'    => $username,
+        ':status'      => $success ? 'success' : 'failed',
+        ':ip_address'  => $_SERVER['REMOTE_ADDR'] ?? null,
+    ]);
 }
