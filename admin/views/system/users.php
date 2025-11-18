@@ -31,7 +31,7 @@ else
         <div class="card">
             <div class="card-body">
                 <table id="admins" class="table table-bordered table-striped table-sm responsive">
-                    <thead class="text-center">
+                    <thead class="text-center thead-dark">
                         <tr>
                             <th>Foto</th>
                             <th>Nombre</th>

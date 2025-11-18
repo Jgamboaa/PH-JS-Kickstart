@@ -27,7 +27,7 @@ else
             <div class="card">
                 <div class="card-body">
                     <table id="roles" class="table table-bordered table-striped table-sm responsive">
-                        <thead class="text-center">
+                        <thead class="text-center thead-dark">
                             <th>ID</th>
                             <th>Rol</th>
                             <th>Acciones</th>
