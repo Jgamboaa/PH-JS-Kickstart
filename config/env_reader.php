@@ -1,8 +1,13 @@
 <?php
 
+use Dotenv\Dotenv;
+
+// Incluir autoloader de Composer
+require_once __DIR__ . '/../vendor/autoload.php';
+
 /**
- * Función para cargar las variables del archivo .env
- * @param string $path Ruta al archivo .env (opcional)
+ * Función para cargar las variables del archivo .env usando vlucas/phpdotenv
+ * @param string $path Ruta al directorio que contiene .env (opcional)
  * @return array Variables cargadas
  */
 function loadEnv($path = null)
@@ -10,43 +15,31 @@ function loadEnv($path = null)
     // Si no se proporciona ruta, usar la ubicación predeterminada
     if ($path === null)
     {
-        $path = __DIR__ . '/../.env';
+        $path = __DIR__ . '/..';
     }
 
-    // Verificar si el archivo existe
-    if (!file_exists($path))
+    // Verificar si el archivo .env existe
+    $envFile = $path . '/.env';
+    if (!file_exists($envFile))
     {
-        die("Error: El archivo .env no existe en la ruta: $path");
+        die("Error: El archivo .env no existe en la ruta: $envFile");
     }
 
-    // Leer el archivo
-    $lines = file($path, FILE_IGNORE_NEW_LINES | FILE_SKIP_EMPTY_LINES);
-    $env_vars = [];
-
-    // Procesar cada línea
-    foreach ($lines as $line)
+    try
     {
-        // Ignorar comentarios
-        if (strpos(trim($line), '#') === 0)
-        {
-            continue;
-        }
+        // Crear instancia de Dotenv
+        $dotenv = Dotenv::createImmutable($path);
 
-        // Analizar asignación de variable
-        if (strpos($line, '=') !== false)
-        {
-            list($name, $value) = explode('=', $line, 2);
-            $name = trim($name);
-            $value = trim($value);
+        // Cargar las variables
+        $dotenv->load();
 
-            // Establecer la variable en $_ENV y como variable de entorno
-            $_ENV[$name] = $value;
-            putenv("$name=$value");
-            $env_vars[$name] = $value;
-        }
+        // Retornar las variables cargadas desde $_ENV
+        return $_ENV;
     }
-
-    return $env_vars;
+    catch (Exception $e)
+    {
+        die("Error al cargar el archivo .env: " . $e->getMessage());
+    }
 }
 
 // Cargar automáticamente las variables al incluir este archivo
@@ -60,6 +53,13 @@ loadEnv();
  */
 function env($key, $default = null)
 {
+    // Primero intentar obtener de $_ENV
+    if (isset($_ENV[$key]))
+    {
+        return $_ENV[$key];
+    }
+
+    // Como respaldo, intentar getenv()
     $value = getenv($key);
 
     if ($value === false)
