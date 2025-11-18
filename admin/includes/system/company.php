@@ -2,7 +2,9 @@
 include '../session.php';
 include '../../controllers/system/company.php';
 
-$companyController = new CompanyController($conn);
+// Usar la conexión PDO global
+global $pdo;
+$companyController = new CompanyController($pdo);
 $response = array();
 
 if (isset($_POST['company_name']))
