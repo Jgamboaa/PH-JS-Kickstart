@@ -1,8 +1,5 @@
 <?php
 include '../../includes/session.php';
-// Incluir componentes para modales y campos de formulario
-include '../../components/modal.php';
-include '../../components/form_fields.php';
 
 $admin_id = $user['id'];
 $roles_ids = explode(',', $user['roles_ids']);
@@ -42,52 +39,39 @@ else
         </div>
     </section>
 
-    <?php
+    <!-- Modal único Crear/Editar Rol -->
+    <div class="modal fade" id="roleModal" tabindex="-1" role="dialog" aria-labelledby="roleModalLabel" aria-hidden="true" aria-modal="true" data-backdrop="static">
+        <div class="modal-dialog modal-dialog-scrollable" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="roleModalLabel">Añadir Nuevo Rol</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="roleForm">
+                        <input type="hidden" id="role_crud" name="crud" value="create">
+                        <input type="hidden" id="role-id" name="id">
 
-    // Modal para crear rol
-    echo renderModal([
-        'id' => 'createRoleModal',
-        'title' => 'Añadir Nuevo Rol',
-        'body' => '
-            <form id="createRoleForm">
-                ' . renderFormField([
-            'type' => 'text',
-            'name' => 'nombre',
-            'id' => 'nombre',
-            'label' => 'Nombre del Rol',
-            'placeholder' => 'Ingrese el nombre del rol',
-            'required' => true
-        ]) . '
-            </form>
-        ',
-        'footer' => '
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-primary" id="saveRoleBtn">Guardar</button>
-        '
-    ]);
-
-    // Modal para editar rol
-    echo renderModal([
-        'id' => 'editRoleModal',
-        'title' => 'Editar Rol',
-        'body' => '
-            <form id="editRoleForm">
-                <input type="hidden" id="edit-id" name="id">
-                ' . renderFormField([
-            'type' => 'text',
-            'name' => 'nombre',
-            'id' => 'edit-nombre',
-            'label' => 'Nombre del Rol',
-            'placeholder' => 'Ingrese el nombre del rol',
-            'required' => true
-        ]) . '
-            </form>
-        ',
-        'footer' => '
-            <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
-            <button type="button" class="btn btn-primary" id="updateRoleBtn">Actualizar</button>
-        '
-    ]);
-    ?>
+                        <div class="form-group">
+                            <label for="role-nombre">Nombre del Rol</label>
+                            <input
+                                type="text"
+                                name="nombre"
+                                id="role-nombre"
+                                class="form-control"
+                                placeholder="Ingrese el nombre del rol"
+                                required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-secondary" data-dismiss="modal">Cancelar</button>
+                    <button type="button" class="btn btn-primary" id="saveRoleBtn">Guardar</button>
+                </div>
+            </div>
+        </div>
+    </div>
 <?php
 }

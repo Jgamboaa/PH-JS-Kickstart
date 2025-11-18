@@ -4,23 +4,33 @@
 
         // Abrir modal para crear rol
         $('#add').on('click', function() {
-            $('#createRoleForm')[0].reset();
-            $('#createRoleModal').modal('show');
+            $('#roleForm')[0].reset();
+            $('#role_crud').val('create');
+            $('#role-id').val('');
+            $('#roleModalLabel').text('Añadir Nuevo Rol');
+            $('#roleModal').modal('show');
         });
 
-        // Guardar nuevo rol
+        // Guardar rol (crear/editar según modo)
         $('#saveRoleBtn').on('click', function() {
-            const nombre = $('#nombre').val();
+            const nombre = $('#role-nombre').val();
+            const crud = $('#role_crud').val();
+            const id = $('#role-id').val();
 
             if (!nombre) {
                 Swal.fire('Error', 'Por favor, completa el campo nombre', 'error');
                 return;
             }
 
-            manageRole('create', {
+            const data = {
                 nombre
-            });
-            $('#createRoleModal').modal('hide');
+            };
+            if (crud === 'edit') {
+                data.id = id;
+            }
+
+            manageRole(crud, data);
+            $('#roleModal').modal('hide');
         });
 
         // Abrir modal para editar rol
@@ -33,27 +43,12 @@
             }, function(data) {
                 const rol = JSON.parse(data);
 
-                $('#edit-id').val(rol.id);
-                $('#edit-nombre').val(rol.nombre);
-                $('#editRoleModal').modal('show');
+                $('#role-id').val(rol.id);
+                $('#role-nombre').val(rol.nombre);
+                $('#role_crud').val('edit');
+                $('#roleModalLabel').text('Editar Rol');
+                $('#roleModal').modal('show');
             });
-        });
-
-        // Actualizar rol
-        $('#updateRoleBtn').on('click', function() {
-            const id = $('#edit-id').val();
-            const nombre = $('#edit-nombre').val();
-
-            if (!nombre) {
-                Swal.fire('Error', 'Por favor, completa el campo nombre', 'error');
-                return;
-            }
-
-            manageRole('edit', {
-                id,
-                nombre
-            });
-            $('#editRoleModal').modal('hide');
         });
 
         // Eliminar rol (añadiendo confirmación con SweetAlert)
