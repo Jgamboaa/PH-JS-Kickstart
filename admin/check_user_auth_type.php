@@ -1,4 +1,5 @@
 <?php
+require_once dirname(__DIR__) . '/config/env_reader.php';
 require_once 'includes/session_config.php';
 require_once dirname(__DIR__) . '/config/db_conn.php';
 require_once 'includes/security_functions.php';

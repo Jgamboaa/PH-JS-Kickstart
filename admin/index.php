@@ -284,7 +284,7 @@ $csrf_token = generateCSRFToken();
 
         // Llamar al nuevo endpoint para verificar el tipo de autenticación
         $.ajax({
-          url: 'check_user_auth_type.php',
+          url: '/check_user_auth_type.php',
           type: 'POST',
           data: {
             username: email,
@@ -359,7 +359,7 @@ $csrf_token = generateCSRFToken();
         $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Cargando...');
 
         $.ajax({
-          url: 'login.php',
+          url: '/login.php',
           type: 'POST',
           data: $form.serialize(),
           dataType: 'json',
@@ -492,7 +492,7 @@ $csrf_token = generateCSRFToken();
         $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
 
         $.ajax({
-          url: 'login.php',
+          url: '/login.php',
           type: 'POST',
           data: $form.serialize(),
           dataType: 'json',
@@ -619,7 +619,7 @@ $csrf_token = generateCSRFToken();
         $button.prop('disabled', true).html('<span class="spinner-border spinner-border-sm me-1" role="status" aria-hidden="true"></span> Verificando...');
 
         $.ajax({
-          url: 'verify_2fa_ajax.php',
+          url: '/verify_2fa_ajax.php',
           type: 'POST',
           data: $form.serialize(),
           dataType: 'json',
