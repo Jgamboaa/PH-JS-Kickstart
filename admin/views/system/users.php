@@ -24,6 +24,7 @@ else
                     <a id="addnew" class="btn btn-sm btn-primary"><i class="fa fa-duotone fa-solid fa-plus fa-lg" data-toggle="tooltip" title="Agregar Usuario"></i></a>
                     <a class=" btn btn-sm btn-warning btn-backup"><i class="fa fa-duotone fa-solid fa-server fa-lg" data-toggle="tooltip" title="Generar respaldo"></i></a>
                     <a class="btn btn-sm btn-info btn-email-backup"><i class="fa fa-duotone fa-solid fa-paper-plane-top fa-lg" data-toggle="tooltip" title="Enviar respaldo por correo"></i></a>
+                    <a class="btn btn-sm btn-info btn-company-data"><i class="fa fa-duotone fa-solid fa-building fa-lg" data-toggle="tooltip" title="Datos de la empresa"></i></a>
                 </div>
             </div>
         </div>
@@ -226,6 +227,81 @@ else
                         <i class="fa fa-times"></i> Cerrar
                     </button>
                     <button type="submit" class="btn btn-sm btn-primary" form="admin_form">
+                        <i class="fa fa-save"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Datos de la Empresa -->
+    <div class="modal fade" id="company_modal" tabindex="-1" role="dialog" aria-labelledby="company_modalLabel" aria-hidden="true" aria-modal="true" data-backdrop="static">
+        <div class="modal-dialog" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="company_modalLabel">Datos de la empresa</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="company_form">
+                        <div class="form-group">
+                            <label for="company_name">Nombre de la empresa</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="company_name"
+                                name="company_name"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="company_name_short">Nombre corto</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="company_name_short"
+                                name="company_name_short"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="app_name">Nombre de la aplicación</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="app_name"
+                                name="app_name"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="app_version">Versión de la aplicación</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="app_version"
+                                name="app_version"
+                                required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="developer_name">Desarrollador</label>
+                            <input
+                                type="text"
+                                class="form-control"
+                                id="developer_name"
+                                name="developer_name"
+                                required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">
+                        <i class="fa fa-times"></i> Cerrar
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary" form="company_form">
                         <i class="fa fa-save"></i> Guardar
                     </button>
                 </div>

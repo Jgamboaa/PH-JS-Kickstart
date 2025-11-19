@@ -4,10 +4,6 @@ return [
         'vista' => 'views/system/users.php',
         'scripts' => ['scripts/system/users.php']
     ],
-    'company' => [
-        'vista' => 'views/system/company.php',
-        'scripts' => ['scripts/system/company.php']
-    ],
     'branding' => [
         'vista' => 'views/system/branding.php',
         'scripts' => ['scripts/system/branding.php']
