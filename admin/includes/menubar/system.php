@@ -14,18 +14,6 @@
              </a>
          </li>
          <li class="nav-item">
-             <a href="#company" class="nav-link">
-                 <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
-                 <p>Empresa</p>
-             </a>
-         </li>
-         <li class="nav-item">
-             <a href="#branding" class="nav-link">
-                 <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
-                 <p>Imágenes</p>
-             </a>
-         </li>
-         <li class="nav-item">
              <a href="#roles" class="nav-link">
                  <i class="fa fa-regular fa-circle text-sm nav-icon"></i>
                  <p>Roles</p>

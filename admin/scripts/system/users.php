@@ -228,6 +228,151 @@
             });
         });
 
+        // Branding: abrir modal de imágenes
+        $('.btn-branding').click(function(e) {
+            e.preventDefault();
+
+            // Limpiar formulario de branding
+            $('#branding_form')[0].reset();
+
+            $('#branding_modal').modal('show');
+        });
+
+        // Guardar imágenes de branding
+        $('#branding_form').on('submit', function(e) {
+            e.preventDefault();
+
+            Swal.fire({
+                title: 'Guardando branding',
+                text: 'Por favor espere...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            var formData = new FormData(this);
+
+            $.ajax({
+                type: 'POST',
+                url: 'includes/system/branding.php',
+                data: formData,
+                contentType: false,
+                processData: false,
+                dataType: 'json',
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.status && response.status === 'success') {
+                        $('#branding_modal').modal('hide');
+                        Swal.fire('Éxito', response.message || 'Imágenes actualizadas exitosamente.', 'success')
+                            .then(function() {
+                                // Recargar la página para que se vean los nuevos logos/íconos
+                                window.location.reload();
+                            });
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudieron actualizar las imágenes de branding.', 'error');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    Swal.close();
+                    Swal.fire('Error', 'Ocurrió un error al actualizar el branding: ' + errorThrown, 'error');
+                }
+            });
+        });
+
+        // Datos de la empresa: abrir modal y cargar información
+        $('.btn-company-data').click(function(e) {
+            e.preventDefault();
+
+            // Limpiar formulario
+            $('#company_form')[0].reset();
+
+            // Mostrar indicador de carga mientras se obtiene la info
+            Swal.fire({
+                title: 'Cargando datos de la empresa',
+                text: 'Por favor espere...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                type: 'GET',
+                url: 'includes/system/company.php',
+                dataType: 'json',
+                success: function(response) {
+                    Swal.close();
+
+                    // Si viene un error del backend
+                    if (response.status && response.status === 'error') {
+                        Swal.fire('Error', response.message || 'No se pudo obtener la información de la empresa.', 'error');
+                        return;
+                    }
+
+                    // Rellenar campos con los datos de la empresa
+                    $('#company_name').val(response.company_name || '');
+                    $('#company_name_short').val(response.company_name_short || '');
+                    $('#app_name').val(response.app_name || '');
+                    $('#app_version').val(response.app_version || '');
+                    $('#developer_name').val(response.developer_name || '');
+
+                    // Mostrar modal
+                    $('#company_modal').modal('show');
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    Swal.close();
+                    Swal.fire('Error', 'No se pudo cargar la información de la empresa: ' + errorThrown, 'error');
+                }
+            });
+        });
+
+        // Guardar datos de la empresa
+        $('#company_form').on('submit', function(e) {
+            e.preventDefault();
+
+            Swal.fire({
+                title: 'Guardando datos de la empresa',
+                text: 'Por favor espere...',
+                allowOutsideClick: false,
+                allowEscapeKey: false,
+                showConfirmButton: false,
+                didOpen: () => {
+                    Swal.showLoading();
+                }
+            });
+
+            $.ajax({
+                type: 'POST',
+                url: 'includes/system/company.php',
+                data: $('#company_form').serialize(),
+                dataType: 'json',
+                success: function(response) {
+                    Swal.close();
+
+                    if (response.status && response.status === 'success') {
+                        $('#company_modal').modal('hide');
+                        Swal.fire('Éxito', response.message || 'Datos de la empresa actualizados correctamente.', 'success')
+                            .then(function() {
+                                // Recargar la página para reflejar cambios en la vista
+                                window.location.reload();
+                            });
+                    } else {
+                        Swal.fire('Error', response.message || 'No se pudieron guardar los datos de la empresa.', 'error');
+                    }
+                },
+                error: function(jqXHR, textStatus, errorThrown) {
+                    Swal.close();
+                    Swal.fire('Error', 'Ocurrió un error al guardar los datos de la empresa: ' + errorThrown, 'error');
+                }
+            });
+        });
+
         // Nueva funcionalidad para ejecutar el respaldo por email
         $('.btn-email-backup').click(function(e) {
             e.preventDefault();
