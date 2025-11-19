@@ -25,20 +25,21 @@ if (!isset($_POST['username']) || empty($_POST['username']))
 $username = filter_var($_POST['username'], FILTER_SANITIZE_EMAIL);
 
 // Verificar si el usuario existe y su tipo de autenticación
-global $pdo;
-$stmt = $pdo->prepare('SELECT id, admin_estado, tfa_enabled FROM admin WHERE username = :username LIMIT 1');
-$stmt->execute([':username' => $username]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+$sql = "SELECT id, username, tfa_enabled, admin_estado FROM admin WHERE username = ?";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$username]);
 
-if (!$user)
+if ($stmt->rowCount() < 1)
 {
     $response['message'] = 'Usuario no encontrado';
     echo json_encode($response);
     exit();
 }
 
+$user = $stmt->fetch(PDO::FETCH_ASSOC);
+
 // Verificar si la cuenta está deshabilitada
-if ((int)$user['admin_estado'] == 1)
+if ($user['admin_estado'] == 1)
 {
     $response['message'] = 'Tu cuenta ha sido deshabilitada';
     echo json_encode($response);
@@ -58,7 +59,7 @@ if (!checkLoginAttempts($username, env('MAIL_SUPPORT')))
 $response['status'] = true;
 $response['user_id'] = $user['id'];
 
-if ((int)$user['tfa_enabled'] == 1)
+if ($user['tfa_enabled'] == 1)
 {
     $response['auth_type'] = '2fa';
     $response['message'] = 'Ingresa el código de verificación 2FA';

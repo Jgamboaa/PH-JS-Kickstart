@@ -46,10 +46,10 @@ if (empty($code))
     exit(json_encode(['status' => false, 'message' => 'Por favor ingresa un código']));
 }
 
-// Obtener información del usuario usando PDO
-global $pdo;
-$stmt = $pdo->prepare('SELECT id, tfa_secret, last_login, admin_gender, user_firstname FROM admin WHERE id = :id LIMIT 1');
-$stmt->execute([':id' => $userId]);
+// Obtener información del usuario
+$sql = "SELECT id, username, tfa_secret, user_firstname, admin_gender, last_login FROM admin WHERE id = ?";
+$stmt = $pdo->prepare($sql);
+$stmt->execute([$userId]);
 $user = $stmt->fetch(PDO::FETCH_ASSOC);
 
 if (!$user)
@@ -82,15 +82,10 @@ else
 // Si la verificación es exitosa, completar el inicio de sesión
 if ($verification_success)
 {
-    // Guardar si es el primer login antes de actualizar
-    $isFirstLogin = empty($user['last_login']);
-
     // Actualizar último login
-    $stmt = $pdo->prepare('UPDATE admin SET last_login = :last_login WHERE id = :id');
-    $stmt->execute([
-        ':last_login' => date('Y-m-d H:i:s'),
-        ':id'         => $userId,
-    ]);
+    $sql = "UPDATE admin SET last_login = NOW() WHERE id = ?";
+    $stmt = $pdo->prepare($sql);
+    $stmt->execute([$userId]);
 
     // Eliminar estado pendiente 2FA
     unset($_SESSION['2fa_pending']);
@@ -101,7 +96,7 @@ if ($verification_success)
     $_SESSION['last_activity'] = time();
 
     // Preparar mensaje de bienvenida
-    if ($isFirstLogin)
+    if (empty($user['last_login']))
     {
         $saludo_login = ($user['admin_gender'] == '0') ? "¡Bienvenido al sistema" : "¡Bienvenida al sistema";
     }
