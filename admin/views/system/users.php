@@ -21,10 +21,30 @@ else
         <div class="container-fluid content-header">
             <div class="row mb-2">
                 <div class="col-sm-6">
-                    <a id="addnew" class="btn btn-sm btn-primary"><i class="fa fa-duotone fa-solid fa-plus fa-lg" data-toggle="tooltip" title="Agregar Usuario"></i></a>
-                    <a class=" btn btn-sm btn-warning btn-backup"><i class="fa fa-duotone fa-solid fa-server fa-lg" data-toggle="tooltip" title="Generar respaldo"></i></a>
-                    <a class="btn btn-sm btn-info btn-email-backup"><i class="fa fa-duotone fa-solid fa-paper-plane-top fa-lg" data-toggle="tooltip" title="Enviar respaldo por correo"></i></a>
-                    <a class="btn btn-sm btn-info btn-company-data"><i class="fa fa-duotone fa-solid fa-building fa-lg" data-toggle="tooltip" title="Datos de la empresa"></i></a>
+                    <!-- Crear usuario -->
+                    <a id="addnew" class="btn btn-sm btn-primary">
+                        <i class="fa fa-duotone fa-solid fa-plus fa-lg" data-toggle="tooltip" title="Agregar Usuario"></i>
+                    </a>
+
+                    <!-- Respaldo local de la BD -->
+                    <a class="btn btn-sm btn-warning btn-backup">
+                        <i class="fa fa-duotone fa-solid fa-server fa-lg" data-toggle="tooltip" title="Generar respaldo"></i>
+                    </a>
+
+                    <!-- Enviar respaldo por correo -->
+                    <a class="btn btn-sm btn-info btn-email-backup">
+                        <i class="fa fa-duotone fa-solid fa-paper-plane-top fa-lg" data-toggle="tooltip" title="Enviar respaldo por correo"></i>
+                    </a>
+
+                    <!-- Datos generales de la empresa -->
+                    <a class="btn btn-sm btn-success btn-company-data">
+                        <i class="fa fa-duotone fa-solid fa-building fa-lg" data-toggle="tooltip" title="Datos de la empresa"></i>
+                    </a>
+
+                    <!-- Branding / apariencia -->
+                    <a class="btn btn-sm btn-dark btn-branding">
+                        <i class="fa fa-duotone fa-solid fa-image fa-lg" data-toggle="tooltip" title="Branding (logos, íconos)"></i>
+                    </a>
                 </div>
             </div>
         </div>
@@ -227,6 +247,154 @@ else
                         <i class="fa fa-times"></i> Cerrar
                     </button>
                     <button type="submit" class="btn btn-sm btn-primary" form="admin_form">
+                        <i class="fa fa-save"></i> Guardar
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Modal Branding -->
+    <div class="modal fade" id="branding_modal" tabindex="-1" role="dialog" aria-labelledby="branding_modalLabel" aria-hidden="true" aria-modal="true" data-backdrop="static">
+        <div class="modal-dialog modal-lg" role="document">
+            <div class="modal-content">
+                <div class="modal-header">
+                    <h5 class="modal-title" id="branding_modalLabel">Branding de la aplicación</h5>
+                    <button type="button" class="close" data-dismiss="modal" aria-label="Close">
+                        <span aria-hidden="true">&times;</span>
+                    </button>
+                </div>
+                <div class="modal-body">
+                    <form id="branding_form" enctype="multipart/form-data">
+                        <div class="row">
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="logo">Logo (452×354 px)</label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input
+                                                    type="file"
+                                                    class="custom-file-input"
+                                                    name="logo"
+                                                    id="logo"
+                                                    accept="image/png">
+                                                <label class="custom-file-label" for="logo">Seleccionar</label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Se guardará como <strong>images/logo.png</strong></small>
+                                    </div>
+                                    <div class="col-lg-6 text-center">
+                                        <img src="../images/logo.png" alt="Logo" class="brand-image" width="88.5px">
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="logo_w">Logo color blanco (452×354 px)</label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input
+                                                    type="file"
+                                                    class="custom-file-input"
+                                                    name="logo2"
+                                                    id="logo_w"
+                                                    accept="image/png">
+                                                <label class="custom-file-label" for="logo_w">Seleccionar</label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Se guardará como <strong>images/logo2.png</strong></small>
+                                    </div>
+                                    <div class="col-lg-6 text-center">
+                                        <div class="bg-primary p-2">
+                                            <img src="../images/logo2.png" alt="Logo Blanco" class="brand-image" width="88.5px">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="logo3">Logo sin letras (400×400 px)</label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input
+                                                    type="file"
+                                                    class="custom-file-input"
+                                                    name="logo_circulo"
+                                                    id="logo3"
+                                                    accept="image/png">
+                                                <label class="custom-file-label" for="logo3">Seleccionar</label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Se guardará como <strong>images/logo_circulo.png</strong></small>
+                                    </div>
+                                    <div class="col-lg-6 text-center">
+                                        <div class="bg-primary p-2">
+                                            <img src="../images/logo_circulo.png" alt="Logo sin letras" width="80px">
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="col">
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="favicon">Favicon (160×160 px)</label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input
+                                                    type="file"
+                                                    class="custom-file-input"
+                                                    name="favicon"
+                                                    id="favicon"
+                                                    accept="image/png">
+                                                <label class="custom-file-label" for="favicon">Seleccionar</label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Se guardará como <strong>images/favicon.png</strong></small>
+                                    </div>
+                                    <div class="col-lg-6 text-center">
+                                        <div class="bg-primary p-2">
+                                            <img src="../images/favicon.png" alt="Favicon" width="80px">
+                                        </div>
+                                    </div>
+                                </div>
+
+                                <hr>
+
+                                <div class="row">
+                                    <div class="col-lg-6">
+                                        <label for="avatar">Avatar (400×400 px)</label>
+                                        <div class="input-group">
+                                            <div class="custom-file">
+                                                <input
+                                                    type="file"
+                                                    class="custom-file-input"
+                                                    name="avatar"
+                                                    id="avatar"
+                                                    accept="image/png">
+                                                <label class="custom-file-label" for="avatar">Seleccionar</label>
+                                            </div>
+                                        </div>
+                                        <small class="form-text text-muted">Se guardará como <strong>images/avatar.png</strong></small>
+                                    </div>
+                                    <div class="col-lg-6 text-center">
+                                        <img src="../images/avatar.png" alt="Avatar" width="80px">
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer justify-content-between">
+                    <button type="button" class="btn btn-sm btn-default" data-dismiss="modal">
+                        <i class="fa fa-times"></i> Cerrar
+                    </button>
+                    <button type="submit" class="btn btn-sm btn-primary" form="branding_form">
                         <i class="fa fa-save"></i> Guardar
                     </button>
                 </div>
