@@ -2,9 +2,10 @@
 require_once __DIR__ . '/session_config.php';
 require_once dirname(__DIR__) . '/../config/db_conn.php';
 require_once __DIR__ . '/security_functions.php';
-
 date_default_timezone_set(env('APP_TIMEZONE'));
+
 $isDebug = env('APP_DEBUG') === 'true';
+$enviroment = env('APP_ENV');
 error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
 ini_set('display_errors', $isDebug ? 1 : 0);
 ini_set('display_startup_errors', $isDebug ? 1 : 0);
@@ -14,7 +15,6 @@ ini_set('error_log', __DIR__ . '/../../error.log');
 // Verificar y renovar la sesión
 function checkSession()
 {
-	global $pdo;
 	$max_lifetime = 30 * 24 * 60 * 60; // 30 días en segundos
 	$current_time = time();
 
@@ -24,12 +24,10 @@ function checkSession()
 		$admin_id = filter_var($_COOKIE['persistent_session'], FILTER_SANITIZE_NUMBER_INT);
 		if ($admin_id)
 		{
-			// Verificar el usuario usando PDO
-			$stmt = $pdo->prepare('SELECT id FROM admin WHERE id = :id LIMIT 1');
-			$stmt->execute([':id' => $admin_id]);
-			$admin = $stmt->fetch(PDO::FETCH_ASSOC);
-
-			if ($admin)
+			global $pdo;
+			$stmt = $pdo->prepare("SELECT id FROM admin WHERE id = ? AND admin_estado = 0");
+			$stmt->execute([$admin_id]);
+			if ($stmt->rowCount() > 0)
 			{
 				$_SESSION['admin'] = $admin_id;
 				$_SESSION['last_activity'] = $current_time;
@@ -55,26 +53,11 @@ function checkSession()
 		}
 	}
 
-	// CAMBIO: Actualizamos la IP y User-Agent para fines de auditoría, pero no validamos
-	if (isset($_SESSION['ip_address']) && $_SESSION['ip_address'] !== $_SERVER['REMOTE_ADDR'])
-	{
-		// Registrar el cambio de IP para auditoría
-		if (isset($_SESSION['admin']))
-		{
-			logDeviceChange($_SESSION['admin'], 'ip_change', $_SESSION['ip_address'], $_SERVER['REMOTE_ADDR']);
-		}
-		$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
-	}
+	// CAMBIO: Eliminamos completamente la verificación de cambio de IP
+	// Simplemente actualizamos la IP actual para tenerla registrada por motivos de auditoría
+	$_SESSION['ip_address'] = $_SERVER['REMOTE_ADDR'];
 
-	if (isset($_SESSION['user_agent']) && $_SESSION['user_agent'] !== $_SERVER['HTTP_USER_AGENT'])
-	{
-		// Registrar el cambio de user-agent para auditoría
-		if (isset($_SESSION['admin']))
-		{
-			logDeviceChange($_SESSION['admin'], 'user_agent_change', $_SESSION['user_agent'], $_SERVER['HTTP_USER_AGENT']);
-		}
-		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
-	}
+	// Ya no verificamos cambios en User-Agent, ya que puede cambiar legítimamente después de actualizaciones
 
 	if (
 		isset($_SESSION['last_activity']) &&
@@ -94,6 +77,7 @@ function checkSession()
 	$_SESSION['last_activity'] = $current_time;
 
 	// Regenerar el ID de sesión periódicamente (cada 12 horas en lugar de 30 minutos)
+	// para reducir la frecuencia de regeneración y minimizar problemas
 	if (!isset($_SESSION['created']))
 	{
 		$_SESSION['created'] = time();
@@ -101,15 +85,12 @@ function checkSession()
 	else if (time() - $_SESSION['created'] > 43200) // 12 horas
 	{
 		// Guardar el ID admin antes de regenerar
-		$admin_id = $_SESSION['admin'] ?? null;
+		$admin_id = $_SESSION['admin'];
 
 		session_regenerate_id(true);
 
-		// Asegurar que el ID admin sigue presente si existía
-		if ($admin_id)
-		{
-			$_SESSION['admin'] = $admin_id;
-		}
+		// Asegurar que el ID admin sigue presente
+		$_SESSION['admin'] = $admin_id;
 		$_SESSION['created'] = time();
 	}
 
@@ -122,12 +103,6 @@ function checkSession()
 	if (!isset($_SESSION['user_agent']))
 	{
 		$_SESSION['user_agent'] = $_SERVER['HTTP_USER_AGENT'];
-	}
-
-	// Añadir un identificador de dispositivo único si no existe
-	if (!isset($_SESSION['device_token']))
-	{
-		$_SESSION['device_token'] = bin2hex(random_bytes(16));
 	}
 
 	// Renovar la cookie persistente si existe
@@ -146,53 +121,9 @@ function checkSession()
 			]
 		);
 	}
-
-	// Actualizar la última actividad en la tabla active_sessions si hay un usuario logueado
-	if (isset($_SESSION['admin']) && isset($_SESSION['device_token']))
-	{
-		try
-		{
-			// Actualizar la última actividad de la sesión activa
-			$stmt = $pdo->prepare('UPDATE active_sessions 
-					SET last_activity = :last_activity 
-					WHERE user_id = :user_id AND device_token = :device_token');
-			$stmt->execute([
-				':last_activity' => date('Y-m-d H:i:s'),
-				':user_id'       => $_SESSION['admin'],
-				':device_token'  => $_SESSION['device_token'],
-			]);
-		}
-		catch (Exception $e)
-		{
-			// Si hay un error, continuamos sin interrumpir la sesión
-		}
-	}
 }
 
-// Función para registrar cambios de dispositivo para auditoría
-function logDeviceChange($user_id, $change_type, $old_value, $new_value)
-{
-	global $pdo;
-
-	try
-	{
-		// Crear un nuevo registro de log usando PDO en la tabla session_logs
-		$stmt = $pdo->prepare('INSERT INTO session_logs (user_id, log_type, old_value, new_value, created_at) 
-                VALUES (:user_id, :log_type, :old_value, :new_value, :created_at)');
-		$stmt->execute([
-			':user_id'    => $user_id,
-			':log_type'   => $change_type,
-			':old_value'  => $old_value,
-			':new_value'  => $new_value,
-			':created_at' => date('Y-m-d H:i:s'),
-		]);
-	}
-	catch (Exception $e)
-	{
-		// Si la tabla no existe, no fallamos, solo ignoramos el log
-	}
-}
-
+// Ejecutamos la verificación de sesión
 checkSession();
 
 if (!isset($_SESSION['admin']) || trim($_SESSION['admin']) == '')
@@ -201,22 +132,13 @@ if (!isset($_SESSION['admin']) || trim($_SESSION['admin']) == '')
 	exit();
 }
 
-// Cargar información del usuario con PDO
-global $pdo;
-$stmt = $pdo->prepare('SELECT * FROM admin WHERE id = :id LIMIT 1');
-$stmt->execute([':id' => $_SESSION['admin']]);
-$user = $stmt->fetch(PDO::FETCH_ASSOC);
+// Obtener datos del administrador usando PDO
+$stmt = $pdo->prepare("SELECT * FROM admin WHERE id = :admin_id");
+$stmt->execute(['admin_id' => $_SESSION['admin']]);
+$user = $stmt->fetch();
+$admin_id = $user['id'];
 
-if (!$user)
-{
-	// Si no se encuentra el usuario, cerrar sesión por seguridad
-	$_SESSION = [];
-	session_destroy();
-	header('location: index.php');
-	exit();
-}
-
-// Verificar si el usuario tiene MFA requerido pero no habilitado
+// NUEVO: Verificar si el usuario tiene MFA requerido pero no habilitado
 if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
 {
 	// Limpiar todas las variables de sesión
@@ -236,23 +158,24 @@ if ($user['tfa_required'] == 1 && $user['tfa_enabled'] == 0)
 	exit();
 }
 
-// Actualizar last_login time usando RedBeanPHP
-$stmtUpdate = $pdo->prepare('UPDATE admin SET last_login = :last_login WHERE id = :id');
-$stmtUpdate->execute([
-	':last_login' => date('Y-m-d H:i:s'),
-	':id'         => $_SESSION['admin'],
+// Actualizar last_login time usando PDO
+$now_login = date('Y-m-d H:i:s');
+$stmt = $pdo->prepare("UPDATE admin SET last_login = :last_login WHERE id = :admin_id");
+$stmt->execute([
+	'last_login' => $now_login,
+	'admin_id' => $_SESSION['admin']
 ]);
 
 // Obtener datos de la empresa usando PDO
-$stmtCompany = $pdo->prepare('SELECT * FROM company_data WHERE id = 1 LIMIT 1');
-$stmtCompany->execute();
-$company = $stmtCompany->fetch(PDO::FETCH_ASSOC) ?: [];
+$stmt = $pdo->prepare("SELECT * FROM company_data WHERE id = 1 LIMIT 1");
+$stmt->execute();
+$data = $stmt->fetch();
 
-$company_name = $company['company_name'];
-$company_name_short = $company['company_name_short'];
-$app_name = $company['app_name'];
-$app_version = $company['app_version'];
-$developer_name = $company['developer_name'];
+$company_name = $data['company_name'];
+$company_name_short = $data['company_name_short'];
+$app_name = $data['app_name'];
+$app_version = $data['app_version'];
+$developer_name = $data['developer_name'];
 
 $photoPath = '../images/admins/' . $user['photo'];
 $defaultPhoto = '../images/admins/profile.png';

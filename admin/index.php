@@ -1,16 +1,15 @@
 <?php
-// Verificar si existe el archivo .env, si no, dar mensaje
-if (!file_exists(__DIR__ . '/../.env'))
-{
-  echo 'Realiza el proceso de instalación primero.';
-  exit();
-}
-
 require_once 'includes/session_config.php';
 require_once 'includes/security_functions.php';
 require_once 'includes/functions/2fa_functions.php'; // Incluimos las funciones de 2FA
 require_once dirname(__DIR__) . '/config/env_reader.php'; // Corrección de la ruta con barra separadora
 $APP_NAME = env('APP_NAME');
+
+$isDebug = env('APP_DEBUG') === 'true';
+error_reporting($isDebug ? E_ALL : E_ERROR | E_PARSE | E_CORE_ERROR);
+ini_set('display_errors', $isDebug ? 1 : 0);
+ini_set('display_startup_errors', $isDebug ? 1 : 0);
+ini_set('log_errors', 1);
 
 if (isset($_SESSION['admin']))
 {
@@ -32,8 +31,6 @@ $csrf_token = generateCSRFToken();
   <script src="../dist/js/config.js"></script>
   <link href="../dist/css/app.css" rel="stylesheet" type="text/css" id="app-style" />
   <link rel="stylesheet" href="../dist/css/icons.css">
-  <!-- Añadir script para QR -->
-  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
 </head>
 
 <body class="authentication-bg position-relative">
@@ -46,7 +43,7 @@ $csrf_token = generateCSRFToken();
 
             <!-- Logo -->
             <div class="card-header text-center bg-dark">
-              <span><img src="../images/logo2.png" height="100"></span>
+              <span><img src="../images/logo2.png" height="70px"></span>
             </div>
 
             <div class="card-body p-4">
@@ -64,7 +61,7 @@ $csrf_token = generateCSRFToken();
                   <div class="mb-3">
                     <label for="emailaddress" class="form-label">Correo</label>
                     <div class="input-group input-group-merge">
-                      <input class="form-control" type="email" id="emailaddress" required placeholder="ejemplo@email.com" name="username">
+                      <input class="form-control" type="email" id="emailaddress" required placeholder="ejemplo@email.com" name="username" inputmode="email" autocomplete="email" autofocus>
                       <div class="input-group-text" data-password="false">
                         <i class="fa-duotone fa-solid fa-envelope fa-lg"></i>
                       </div>
@@ -144,7 +141,7 @@ $csrf_token = generateCSRFToken();
                     <label for="tfa-code" class="form-label">Código</label>
                     <div class="input-group input-group-merge">
                       <input type="text" id="tfa-code" class="form-control" name="code"
-                        placeholder="Código de 6 dígitos" autocomplete="off" required>
+                        placeholder="Código de 6 dígitos" autocomplete="off" required inputmode="numeric">
                       <div class="input-group-text">
                         <i class="fa-duotone fa-solid fa-shield-alt fa-lg"></i>
                       </div>
@@ -253,6 +250,7 @@ $csrf_token = generateCSRFToken();
   <script src="../dist/js/vendor.min.js"></script>
   <script src="../dist/js/app.js"></script>
   <script src="../plugins/sweetalert2/sweetalert2.min.js"></script>
+  <script src="https://cdn.rawgit.com/davidshimjs/qrcodejs/gh-pages/qrcode.min.js"></script>
   <script>
     // Funciones de validación
     function validateEmail(email) {
@@ -385,6 +383,11 @@ $csrf_token = generateCSRFToken();
                 $('#tfa-code').focus();
                 $button.prop('disabled', false).html('<i class="fa-duotone fa-solid fa-right-to-bracket fa-lg me-1"></i> Iniciar sesión');
               } else if (response.redirect) {
+                // Crear cookie persistente después de login exitoso
+                if (typeof createPersistentCookie === 'function') {
+                  createPersistentCookie(response.user_id || '');
+                }
+
                 // Redirección normal
                 Swal.fire({
                   icon: 'success',
@@ -625,6 +628,11 @@ $csrf_token = generateCSRFToken();
           dataType: 'json',
           success: function(response) {
             if (response.status) {
+              // Crear cookie persistente después de login exitoso con 2FA
+              if (typeof createPersistentCookie === 'function') {
+                createPersistentCookie(response.user_id || '');
+              }
+
               Swal.fire({
                 icon: 'success',
                 title: 'Éxito',
@@ -685,6 +693,17 @@ $csrf_token = generateCSRFToken();
         $('#emailaddress').val('').focus();
       });
 
+      // AÑADIR: Auto-submit cuando se ingresen 6 dígitos en los campos de código
+      $('#tfa-code, #otp-code').on('input', function() {
+        const code = $(this).val().trim();
+        if (code.length === 6) {
+          // Pequeño delay para asegurar que el valor se haya establecido completamente
+          setTimeout(() => {
+            $(this).closest('form').submit();
+          }, 100);
+        }
+      });
+
       // Detectar parámetros de URL para mostrar mensajes
       const urlParams = new URLSearchParams(window.location.search);
 
@@ -698,6 +717,21 @@ $csrf_token = generateCSRFToken();
         });
       }
     });
+
+    // Función auxiliar para crear cookie persistente
+    function createPersistentCookie(userId) {
+      if (!userId) return;
+
+      // Calcular fecha de expiración (30 días)
+      const expirationDate = new Date();
+      expirationDate.setTime(expirationDate.getTime() + (30 * 24 * 60 * 60 * 1000));
+
+      // Crear cookie
+      document.cookie = "persistent_session=" + userId +
+        "; expires=" + expirationDate.toUTCString() +
+        "; path=/; SameSite=Lax" +
+        (window.location.protocol === "https:" ? "; Secure" : "");
+    }
   </script>
 </body>
 
